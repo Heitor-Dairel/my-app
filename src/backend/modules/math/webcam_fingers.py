@@ -4,6 +4,7 @@ from typing import Any
 from types import ModuleType
 from numpy import dtype, integer, floating, ndarray
 from src.backend.utils import HDPrint
+from itertools import product
 
 TOP_FINGERS: list[int] = [8, 12, 16, 20]
 MIDDLE_FINGERS: list[int] = [6, 10, 14, 18]
@@ -46,27 +47,27 @@ class Hands:
         color_connections: tuple[int, int, int] = (255, 255, 255),
     ) -> None:
         """
-        Initializes the hand detection class using MediaPipe with configurable parameters for detection and drawing.
+        Initializes the hand detection system using MediaPipe Hands.
 
-        This constructor sets up the MediaPipe Hands module, configures detection and tracking confidence,
-        maximum number of hands to detect, and drawing specifications for landmarks and connections.
+        This constructor sets up the MediaPipe Hands model with configurable parameters
+        for detection and tracking, as well as drawing specifications for landmarks and connections.
 
         Parameters:
-            mode (bool, optional): Operating mode for MediaPipe Hands. False for static image detection,
-                True for continuous tracking. Default is False.
+            mode (bool, optional): Whether to use static image mode (False for real-time tracking). Default is False.
             max_hands (int, optional): Maximum number of hands to detect. Default is 2.
-            confidence_detect (float, optional): Minimum confidence threshold for detecting hands. Default is 0.7.
-            confidence_trace (float, optional): Minimum confidence threshold for tracking hand landmarks. Default is 0.7.
-            color_points (tuple[int, int, int], optional): RGB color for hand landmark points. Default is (0, 0, 255).
-            color_connections (tuple[int, int, int], optional): RGB color for connections between hand landmarks. Default is (255, 255, 255).
+            confidence_detect (float, optional): Minimum confidence threshold for hand detection. Default is 0.7.
+            confidence_trace (float, optional): Minimum confidence threshold for hand tracking. Default is 0.7.
+            color_points (tuple[int, int, int], optional): BGR color for drawing hand landmarks. Default is (0, 0, 255).
+            color_connections (tuple[int, int, int], optional): BGR color for drawing connections between landmarks. Default is (255, 255, 255).
 
         Attributes:
-            _mp_hands: MediaPipe Hands module.
-            _hands: Configured MediaPipe Hands instance.
-            _result: Stores the latest detection result (hand landmarks and handedness).
-            _drawing: MediaPipe drawing utility module.
-            _drawing_points: Drawing configuration for landmark points.
-            _drawing_connections: Drawing configuration for connections between landmarks.
+            _mp_hands (ModuleType): MediaPipe Hands module.
+            _hands (mp.solutions.hands.Hands): Configured MediaPipe Hands instance.
+            _result (Any): Stores the most recent detection results (landmarks and handedness).
+            _drawing (ModuleType): MediaPipe drawing utilities.
+            _drawing_points (DrawingSpec): Drawing specifications for landmark points.
+            _drawing_connections (DrawingSpec): Drawing specifications for connections between landmarks.
+            coordinates (list[list[Any]] | None): Stores detected coordinates of hand landmarks for each frame.
         """
 
         self.mode: bool = mode
@@ -77,7 +78,11 @@ class Hands:
         self.color_connections: tuple[int, int, int] = color_connections
         self._mp_hands: ModuleType = mp.solutions.hands
         self._hands: mp.solutions.hands.Hands = self._mp_hands.Hands(
-            self.mode, self.max_hands, 1, self.confidence_detect, self.confidence_trace
+            static_image_mode=self.mode,
+            max_num_hands=self.max_hands,
+            model_complexity=1,
+            min_detection_confidence=self.confidence_detect,
+            min_tracking_confidence=self.confidence_trace,
         )
         self._result: Any = None
         self._drawing: ModuleType = mp.solutions.drawing_utils
@@ -87,6 +92,7 @@ class Hands:
         self._drawing_connections: mp.solutions.drawing_utils.DrawingSpec = (
             self._drawing.DrawingSpec(color=self.color_connections)
         )
+        self.coordinates: list[list[Any]] | None = None
 
     @staticmethod
     def _count_fingers(hand_landmarks: Any, handedness_index: int) -> int:
@@ -131,6 +137,33 @@ class Hands:
 
         return count_fg
 
+    def _count_hand(self, hand_index: int) -> int:
+        r"""
+        Counts the number of extended fingers for a specific hand.
+
+        This private method checks the detected hands and returns the count of raised fingers
+        for the hand matching the given index.
+
+        Parameters:
+            hand_index (int): The index of the hand to count fingers for (e.g., 0 for left, 1 for right).
+
+        Returns:
+            int: Number of fingers detected as extended for the specified hand. Returns 0 if the hand is not detected.
+
+        Notes:
+            - Uses MediaPipe's hand landmarks stored in `self._result`.
+            - Relies on the parent class method `_count_fingers` for actual finger counting logic.
+            - Hand indices are determined by MediaPipe handedness classification.
+        """
+
+        if self._result.multi_hand_landmarks and self._result.multi_handedness:
+            for hand_landmarks, handedness in zip(
+                self._result.multi_hand_landmarks, self._result.multi_handedness
+            ):
+                if handedness.classification[0].index == hand_index:
+                    return Hands._count_fingers(hand_landmarks, hand_index)
+        return 0
+
     def search_hands(
         self,
         frame: cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]],
@@ -150,7 +183,7 @@ class Hands:
                 Default is True.
 
         Returns:
-            cv2.Mat | ndarray: The original frame with optional drawings of detected hand landmarks
+            (cv2.Mat | ndarray): The original frame with optional drawings of detected hand landmarks
             and connections.
 
         Notes:
@@ -181,50 +214,55 @@ class Hands:
         self,
         frame: cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]],
         drawing: bool = True,
-        color_radius: tuple[int, int, int] = rgb_to_bgr(0, 0, 0),
-        color_landmark_id: tuple[int, int, int] = rgb_to_bgr(0, 0, 255),
+        color_radius: tuple[int, int, int] | None = None,
+        color_landmark_id: tuple[int, int, int] | None = None,
         radius: int = 7,
         landmark_id: bool = False,
-    ) -> tuple[
-        cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]], list[list[int]]
-    ]:
+    ) -> cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]]:
         r"""
-        Extracts hand landmark coordinates from a frame and optionally draws them with visual markers.
+        Detects hand landmarks in a given frame, stores their coordinates, and optionally draws them.
 
-        This method processes the detected hand landmarks stored in `self._result`, converts their
-        normalized coordinates to pixel values relative to the frame dimensions, and appends them
-        to a list. Optionally, it draws circles at each landmark and can display the landmark IDs.
+        This method processes a frame captured from the webcam, extracts hand landmark coordinates
+        using MediaPipe Hands, and draws the landmarks and their IDs on the frame if requested.
 
         Parameters:
-            frame (cv2.Mat | ndarray): The input image/frame in which hands have been detected.
-            drawing (bool, optional): If True, draws circles at each landmark position. Default is True.
-            color_radius (tuple[int, int, int], optional): RGB color of the landmark circles. Default is black (0, 0, 0) via `rgb_to_bgr`.
-            color_landmark_id (tuple[int, int, int], optional): RGB color of landmark IDs if displayed. Default is red (0, 0, 255) via `rgb_to_bgr`.
+            frame (cv2.Mat | ndarray): The input image/frame to process.
+            drawing (bool, optional): If True, draw landmarks on the frame. Default is True.
+            color_radius (tuple[int, int, int] | None, optional): Color for the landmark points in BGR.
+                Defaults to black if None.
+            color_landmark_id (tuple[int, int, int] | None, optional): Color for landmark IDs in BGR.
+                Defaults to blue if None.
             radius (int, optional): Radius of the landmark circles. Default is 7.
-            landmark_id (bool, optional): If True, displays the landmark ID next to each point. Default is False.
+            landmark_id (bool, optional): If True, draw the IDs of each landmark. Default is False.
 
         Returns:
-            tuple:
-                - cv2.Mat | ndarray: The frame with optional drawings of landmarks and IDs.
-                - list[list[int]]: List of landmark coordinates in the format [id, x, y].
+            (cv2.Mat or ndarray): The processed frame with landmarks and IDs drawn if enabled.
 
         Notes:
-            - Coordinates are scaled to match the dimensions of the input frame.
-            - Requires `self._result` to contain valid hand detection results from MediaPipe.
-            - Disabling drawing or landmark IDs can improve performance in real-time processing.
-            - Color values are converted from RGB to BGR using `rgb_to_bgr`.
+            - Stores coordinates internally in `self.coordinates` as [id, x, y, hand_index].
+            - Uses handedness information to slightly adjust the position of landmark IDs.
+            - Handles multiple hands and landmarks per hand.
+            - If color parameters are None, defaults are applied using `rgb_to_bgr`.
         """
 
-        coordinates: list = []
+        if color_radius is None:
+            color_radius = rgb_to_bgr(0, 0, 0)
+
+        if color_landmark_id is None:
+            color_landmark_id = rgb_to_bgr(0, 0, 255)
+
+        self.coordinates = []
 
         if self._result.multi_hand_landmarks and self._result.multi_handedness:
             for hand_landmarks, handedness in zip(
                 self._result.multi_hand_landmarks, self._result.multi_handedness
             ):
-                for id, points in enumerate(hand_landmarks.landmark):
+                for id, (points, hand) in enumerate(
+                    product(hand_landmarks.landmark, handedness.classification)
+                ):
                     h, w, _ = frame.shape
                     cx, cy = int(points.x * w), int(points.y * h)
-                    coordinates.append([id, cx, cy])
+                    self.coordinates.append([id, cx, cy, hand.index])
                     if drawing:
                         cv2.circle(frame, (cx, cy), radius, color_radius, cv2.FILLED)
                         if landmark_id:
@@ -248,64 +286,50 @@ class Hands:
                                     color_landmark_id,
                                     2,
                                 )
-        return frame, coordinates
+        return frame
+
+    @property
+    def coordinates_result(self) -> list[list[int]] | None:
+        r"""
+        Returns the detected hand landmark coordinates for the current frame.
+
+        Property:
+            coordinates_result (list[list[int]] | None): Provides read-only access to the list of detected hand landmarks,
+            where each entry contains [landmark_id, x, y, hand_index].
+
+        Notes:
+            - Returns None if no hands have been detected yet.
+        """
+
+        return self.coordinates
 
     @property
     def count_left_point(self) -> int:
         r"""
-        Returns the number of fingers extended on the left hand.
+        Returns the number of extended fingers detected on the left hand.
 
-        This property checks the detected hands in `self.result` and counts the
-        fingers of the hand classified as left (index 0) using the `_count_fingers` method.
+        Property:
+            count_left_point (int): Counts the raised fingers for the left hand using the private `_count_hand` method.
 
-        Returns
-        -------
-        int
-            Number of fingers extended on the left hand (0 to 5).
-
-        Notes
-        -----
-        - If no left hand is detected, returns 0.
-        - Relies on `self.result.multi_hand_landmarks` and `self.result.multi_handedness`.
+        Notes:
+            - Returns 0 if the left hand is not detected.
         """
 
-        count_left: int = 0
-
-        if self._result.multi_hand_landmarks and self._result.multi_handedness:
-            for hand_landmarks, handedness in zip(
-                self._result.multi_hand_landmarks, self._result.multi_handedness
-            ):
-                if handedness.classification[0].index == 0:
-                    count_left = Hands._count_fingers(hand_landmarks, 0)
-        return count_left
+        return self._count_hand(0)
 
     @property
     def count_right_point(self) -> int:
         r"""
-        Returns the number of fingers extended on the right hand.
+        Returns the number of extended fingers detected on the right hand.
 
-        This property checks the detected hands in `self.result` and counts the
-        fingers of the hand classified as right (index 1) using the `_count_fingers` method.
+        Property:
+            count_right_point (int): Counts the raised fingers for the right hand using the private `_count_hand` method.
 
-        Returns
-        -------
-        int
-            Number of fingers extended on the right hand (0 to 5).
-
-        Notes
-        -----
-        - If no right hand is detected, returns 0.
-        - Relies on `self.result.multi_hand_landmarks` and `self.result.multi_handedness`.
+        Notes:
+            - Returns 0 if the right hand is not detected.
         """
 
-        count_right: int = 0
-        if self._result.multi_hand_landmarks and self._result.multi_handedness:
-            for hand_landmarks, handedness in zip(
-                self._result.multi_hand_landmarks, self._result.multi_handedness
-            ):
-                if handedness.classification[0].index == 1:
-                    count_right = Hands._count_fingers(hand_landmarks, 1)
-        return count_right
+        return self._count_hand(1)
 
 
 class WebCamActivate(Hands):
@@ -322,7 +346,6 @@ class WebCamActivate(Hands):
         _cap (cv2.VideoCapture): Video capture object for accessing the webcam.
         _ret (bool): Flag indicating if the last frame was successfully read.
         _frame (cv2.Mat | ndarray): Stores the last captured frame.
-        _print_points (list[list[int]] | None): Stores coordinates of detected landmarks for debugging.
 
         # Window attributes
         window_name (str): Name of the display window. Default is "Count Fingers".
@@ -386,7 +409,6 @@ class WebCamActivate(Hands):
         self._cap: cv2.VideoCapture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self._ret: bool = False
         self._frame: cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]] = None
-        self._print_points: list[list[int]] | None = None
 
         # ----------------------- #
         # * window attributes
@@ -414,7 +436,7 @@ class WebCamActivate(Hands):
         # ----------------------- #
         # * print attributes
         # ----------------------- #
-        self.points_debug: bool = True
+        self.points_debug: bool = False
 
         # ----------------------- #
         # * hands init class attributes
@@ -425,7 +447,7 @@ class WebCamActivate(Hands):
         self.confidence_trace: float = 0.7
         self.drawing_hands: bool = True
         self.drawing_points: bool = True
-        self.landmark_id: bool = True
+        self.landmark_id: bool = False
         self.size_radius: int = 7
 
         super().__init__(
@@ -531,24 +553,27 @@ class WebCamActivate(Hands):
 
     def mainloop(self) -> None:
         r"""
-        Runs the main loop for capturing webcam frames, detecting hands, and displaying the output.
+        Runs the main loop for real-time hand tracking and visualization.
 
-        This method continuously captures frames from the webcam, flips them horizontally for
-        mirror view, detects hands using MediaPipe, extracts landmark points, optionally draws
-        landmarks and IDs, prints debug information if enabled, and displays the processed frame
-        in a window. The loop continues until the ESC key is pressed or the window is closed.
+        This method continuously captures frames from the webcam, processes them to detect
+        hands and landmarks, optionally draws landmarks and IDs, and displays the results
+        in a window. It also prints debug information if enabled.
 
-        No parameters are required.
+        Steps performed:
+        1. Configure the display window and webcam settings.
+        2. Enter a continuous loop:
+            - Capture a frame from the webcam.
+            - Flip the frame horizontally for a mirror effect.
+            - Detect hands and draw landmarks if enabled.
+            - Detect landmark points and draw them with IDs if enabled.
+            - Print coordinates for debugging if `points_debug` is True.
+            - Overlay additional text via `_put_text`.
+            - Display the frame in the configured window.
+        3. Exit the loop if the user presses the ESC key or closes the window.
+        4. Release the webcam and destroy all OpenCV windows on exit.
 
         Raises:
             RuntimeError: If a frame cannot be captured from the webcam.
-
-        Notes:
-            - Calls `_config_window` and `_config_webcam` internally to set up the display and capture.
-            - Uses `search_hands` to detect hand landmarks and `search_points` to get coordinates.
-            - Uses `self.points_debug` to optionally print landmark coordinates.
-            - The window name and visual settings are configured via instance attributes.
-            - Automatically releases the webcam and destroys all OpenCV windows when exiting.
         """
 
         self._config_window
@@ -567,7 +592,7 @@ class WebCamActivate(Hands):
                 frame=self._frame, drawing=self.drawing_hands
             )
 
-            self._frame, self._print_points = self.search_points(
+            self._frame = self.search_points(
                 frame=self._frame,
                 drawing=self.drawing_points,
                 color_radius=self.color_radius,
@@ -577,7 +602,7 @@ class WebCamActivate(Hands):
             )
 
             if self.points_debug:
-                HDPrint(self._print_points).print()
+                HDPrint(self.coordinates_result).print()
 
             self._put_text
 
