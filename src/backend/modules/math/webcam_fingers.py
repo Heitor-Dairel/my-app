@@ -67,7 +67,7 @@ class Hands:
             _drawing (ModuleType): MediaPipe drawing utilities.
             _drawing_points (DrawingSpec): Drawing specifications for landmark points.
             _drawing_connections (DrawingSpec): Drawing specifications for connections between landmarks.
-            coordinates (list[list[Any]] | None): Stores detected coordinates of hand landmarks for each frame.
+            _coordinates (list[list[Any]] | None): Stores detected coordinates of hand landmarks for each frame.
         """
 
         self.mode: bool = mode
@@ -92,7 +92,7 @@ class Hands:
         self._drawing_connections: mp.solutions.drawing_utils.DrawingSpec = (
             self._drawing.DrawingSpec(color=self.color_connections)
         )
-        self.coordinates: list[list[Any]] | None = None
+        self._coordinates: list[list[Any]] | None = None
 
     @staticmethod
     def _count_fingers(hand_landmarks: Any, handedness_index: int) -> int:
@@ -239,7 +239,7 @@ class Hands:
             (cv2.Mat or ndarray): The processed frame with landmarks and IDs drawn if enabled.
 
         Notes:
-            - Stores coordinates internally in `self.coordinates` as [id, x, y, hand_index].
+            - Stores coordinates internally in `self._coordinates` as [id, x, y, hand_index].
             - Uses handedness information to slightly adjust the position of landmark IDs.
             - Handles multiple hands and landmarks per hand.
             - If color parameters are None, defaults are applied using `rgb_to_bgr`.
@@ -251,7 +251,7 @@ class Hands:
         if color_landmark_id is None:
             color_landmark_id = rgb_to_bgr(0, 0, 255)
 
-        self.coordinates = []
+        self._coordinates = []
 
         if self._result.multi_hand_landmarks and self._result.multi_handedness:
             for hand_landmarks, handedness in zip(
@@ -262,7 +262,7 @@ class Hands:
                 ):
                     h, w, _ = frame.shape
                     cx, cy = int(points.x * w), int(points.y * h)
-                    self.coordinates.append([id, cx, cy, hand.index])
+                    self._coordinates.append([id, cx, cy, hand.index])
                     if drawing:
                         cv2.circle(frame, (cx, cy), radius, color_radius, cv2.FILLED)
                         if landmark_id:
@@ -287,21 +287,6 @@ class Hands:
                                     2,
                                 )
         return frame
-
-    @property
-    def coordinates_result(self) -> list[list[int]] | None:
-        r"""
-        Returns the detected hand landmark coordinates for the current frame.
-
-        Property:
-            coordinates_result (list[list[int]] | None): Provides read-only access to the list of detected hand landmarks,
-            where each entry contains [landmark_id, x, y, hand_index].
-
-        Notes:
-            - Returns None if no hands have been detected yet.
-        """
-
-        return self.coordinates
 
     @property
     def count_left_point(self) -> int:
@@ -436,7 +421,7 @@ class WebCamActivate(Hands):
         # ----------------------- #
         # * print attributes
         # ----------------------- #
-        self.points_debug: bool = False
+        self.points_debug: bool = True
 
         # ----------------------- #
         # * hands init class attributes
@@ -447,7 +432,7 @@ class WebCamActivate(Hands):
         self.confidence_trace: float = 0.7
         self.drawing_hands: bool = True
         self.drawing_points: bool = True
-        self.landmark_id: bool = False
+        self.landmark_id: bool = True
         self.size_radius: int = 7
 
         super().__init__(
@@ -602,7 +587,7 @@ class WebCamActivate(Hands):
             )
 
             if self.points_debug:
-                HDPrint(self.coordinates_result).print()
+                HDPrint(self._coordinates).print()
 
             self._put_text
 
