@@ -598,4 +598,4 @@ if __name__ == "__main__":
     webcam = WebCamActivate()
     webcam.mainloop()
 
-# python -W ignore -m src.backend.modules.math.webcam_finger
+# python -W ignore -m src.backend.modules.math.webcam_fingers
