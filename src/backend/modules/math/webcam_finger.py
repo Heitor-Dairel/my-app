@@ -88,96 +88,6 @@ class Hands:
             self._drawing.DrawingSpec(color=self.color_connections)
         )
 
-    @property
-    def mp_hands(self) -> ModuleType:
-        r"""
-        Returns the MediaPipe Hands module.
-
-        Property:
-            mp_hands (ModuleType): Provides access to the MediaPipe Hands module for hand detection and processing.
-
-        Notes:
-            - Read-only property. Modifying this module directly is not recommended.
-        """
-
-        return self._mp_hands
-
-    @property
-    def hands(self) -> mp.solutions.hands.Hands:
-        r"""
-        Returns the configured MediaPipe Hands instance.
-
-        Property:
-            hands (mp.solutions.hands.Hands): Provides access to the initialized MediaPipe Hands object.
-
-        Notes:
-            - Use this instance to perform hand detection and landmark tracking.
-            - Read-only; configuration should be done through the class initializer.
-        """
-
-        return self._hands
-
-    @property
-    def result(self) -> Any:
-        r"""
-        Returns the latest hand detection result.
-
-        Property:
-            result (Any): Stores the most recent detection output from MediaPipe Hands, including landmarks and handedness.
-
-        Notes:
-            - Read-only property.
-            - The result is updated every time a frame is processed.
-        """
-
-        return self._result
-
-    @property
-    def drawing(self) -> ModuleType:
-        r"""
-        Returns the MediaPipe drawing utility module.
-
-        Property:
-            drawing (ModuleType): Provides access to MediaPipe's drawing utilities for landmarks and connections.
-
-        Notes:
-            - Read-only property.
-            - Use in combination with landmarks to draw hand features on frames.
-        """
-
-        return self._drawing
-
-    @property
-    def drawing_points(self) -> mp.solutions.drawing_utils.DrawingSpec:
-        r"""
-        Returns the drawing configuration for hand landmarks.
-
-        Property:
-            drawing_points (mp.solutions.drawing_utils.DrawingSpec): Contains the color and style settings for drawing landmarks.
-
-        Notes:
-            - Read-only property.
-            - Used internally when drawing landmarks on frames.
-        """
-
-        return self._drawing_points
-
-    @property
-    def drawing_connections(self) -> mp.solutions.drawing_utils.DrawingSpec:
-        r"""
-        Returns the drawing configuration for landmark connections.
-
-        Property:
-            drawing_connections (mp.solutions.drawing_utils.DrawingSpec):
-            Contains the color and style settings for drawing connections between landmarks.
-
-        Notes:
-            - Read-only property.
-            - Used internally when drawing connections on frames.
-        """
-
-        return self._drawing_connections
-
     @staticmethod
     def _count_fingers(hand_landmarks: Any, handedness_index: int) -> int:
         r"""
@@ -308,25 +218,36 @@ class Hands:
         coordinates: list = []
 
         if self._result.multi_hand_landmarks and self._result.multi_handedness:
-            for hand_landmarks in self._result.multi_hand_landmarks:
+            for hand_landmarks, handedness in zip(
+                self._result.multi_hand_landmarks, self._result.multi_handedness
+            ):
                 for id, points in enumerate(hand_landmarks.landmark):
                     h, w, _ = frame.shape
                     cx, cy = int(points.x * w), int(points.y * h)
                     coordinates.append([id, cx, cy])
                     if drawing:
                         cv2.circle(frame, (cx, cy), radius, color_radius, cv2.FILLED)
-
                         if landmark_id:
-                            cv2.putText(
-                                frame,
-                                str(id),
-                                (cx, cy + 20),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                color_landmark_id,
-                                2,
-                            )
-
+                            if handedness.classification[0].index == 1:
+                                cv2.putText(
+                                    frame,
+                                    str(id),
+                                    (cx, cy + 20),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    color_landmark_id,
+                                    2,
+                                )
+                            else:
+                                cv2.putText(
+                                    frame,
+                                    str(id),
+                                    (cx + 5, cy + 20),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.5,
+                                    color_landmark_id,
+                                    2,
+                                )
         return frame, coordinates
 
     @property
@@ -356,7 +277,6 @@ class Hands:
             ):
                 if handedness.classification[0].index == 0:
                     count_left = Hands._count_fingers(hand_landmarks, 0)
-
         return count_left
 
     @property
@@ -385,7 +305,6 @@ class Hands:
             ):
                 if handedness.classification[0].index == 1:
                     count_right = Hands._count_fingers(hand_landmarks, 1)
-
         return count_right
 
 
