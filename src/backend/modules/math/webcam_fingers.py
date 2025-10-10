@@ -1,32 +1,15 @@
 import cv2
 import mediapipe as mp
+from itertools import product
 from typing import Any
 from types import ModuleType
 from numpy import dtype, integer, floating, ndarray
 from src.backend.utils import HDPrint
-from itertools import product
+from src.backend.helpers import rgb_to_bgr
+
 
 TOP_FINGERS: list[int] = [8, 12, 16, 20]
 MIDDLE_FINGERS: list[int] = [6, 10, 14, 18]
-
-
-def rgb_to_bgr(*color: int) -> tuple[int, int, int]:
-    r"""
-    Converts an RGB color tuple to BGR format.
-
-    Parameters:
-        *color (int): Three integers representing a color in RGB format (R, G, B).
-
-    Returns:
-        tuple: A tuple representing the same color in BGR format (B, G, R).
-
-    Notes:
-        - Useful for OpenCV functions, which use BGR color ordering instead of RGB.
-        - Expects exactly three integer values; passing more or fewer will raise a ValueError.
-    """
-
-    r, g, b = color
-    return (b, g, r)
 
 
 class Hands:
@@ -270,7 +253,7 @@ class Hands:
                                 cv2.putText(
                                     frame,
                                     str(id),
-                                    (cx, cy + 20),
+                                    (cx - 20, cy + 20),
                                     cv2.FONT_HERSHEY_SIMPLEX,
                                     0.5,
                                     color_landmark_id,
@@ -411,8 +394,8 @@ class WebCamActivate(Hands):
         # ----------------------- #
         self.color_points: tuple[int, int, int] = rgb_to_bgr(255, 0, 0)
         self.color_connections: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
-        self.color_radius: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)
-        self.color_landmark_id: tuple[int, int, int] = rgb_to_bgr(255, 251, 0)
+        self.color_radius: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
+        self.color_landmark_id: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
         self.color_rectangle: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
         self.color_left: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)
         self.color_right: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)

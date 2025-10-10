@@ -63,7 +63,7 @@ MORSETEXT: Final[dict[str, str]] = {v: k for k, v in TEXTMORSE.items()}
 MORSESOUND: Final[dict[str, float]] = {
     ".": 0.2,
     "-": 0.3,
-    "TIME_SYMBOLS": 0.2,
-    " ": 0.3,
-    "/": 0.7,
+    "TIME_SYMBOLS": 0.1,
+    " ": 0.2,
+    "/": 0.5,
 }
