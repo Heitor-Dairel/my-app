@@ -1,0 +1,102 @@
+# *===========================================
+# *Arquivos e pastas do Python
+# *===========================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+
+# *===========================================
+# *Ambientes virtuais
+# *===========================================
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# *===========================================
+# *Cache / Logs
+# *===========================================
+*.log
+*.pot
+*.mo
+*.pyc
+*.pkl
+*.sqlite3
+*.db
+*.pid
+
+# *===========================================
+# *Ferramentas / IDEs
+# *===========================================
+.vscode/
+.idea/
+.spyderproject
+.spyproject
+.ropeproject
+.pydevproject
+mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ===========================================
+# *Configurações do sistema
+# ===========================================
+.DS_Store
+Thumbs.db
+
+# *===========================================
+# *Build / Distribuição
+# *===========================================
+build/
+dist/
+develop-eggs/
+.installed.cfg
+MANIFEST
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+
+# *===========================================
+# *Jupyter Notebooks
+# *===========================================
+.ipynb_checkpoints
+*.nbconvert.ipynb
+
+# *===========================================
+# *Segurança (credenciais locais)
+# *===========================================
+*.env
+.env.*
+secrets.json
+credentials.json
+
+# *===========================================
+# *Coverage / Testes
+# *===========================================
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+
+# *===========================================
+# *Outros opcionais
+# *===========================================
+*.bak
+*.swp
+*.swo
