@@ -28,6 +28,19 @@ def rgb_to_bgr(r: int, g: int, b: int) -> tuple[int, int, int]:
 
 @dataclass(slots=True)
 class WindowConfig:
+    r"""
+    Configuration for the main application window and camera capture parameters.
+
+    Attributes:
+        name (str): Window title to display during visualization.
+        width (int): Display window width in pixels.
+        height (int): Display window height in pixels.
+        width_frame (int): Width of the captured frame from the camera.
+        height_frame (int): Height of the captured frame from the camera.
+        fps (int): Desired frames per second for video capture.
+        gain (int): Camera gain level (brightness amplification factor).
+    """
+
     name: str = "Count Fingers"
     width: int = 1280
     height: int = 720
@@ -39,6 +52,20 @@ class WindowConfig:
 
 @dataclass(slots=True)
 class ColorScheme:
+    r"""
+    Color configuration for drawing elements in the hand-tracking interface.
+
+    Attributes:
+        points (tuple[int, int, int]): Color for individual landmark points.
+        connections (tuple[int, int, int]): Color for lines connecting landmarks.
+        radius (tuple[int, int, int]): Color for the radius circle drawn around landmarks.
+        landmark_id (tuple[int, int, int]): Color for text showing landmark IDs.
+        rectangle (tuple[int, int, int]): Color for the bounding rectangle around the hand.
+        left (tuple[int, int, int]): Color for information or markers related to the left hand.
+        right (tuple[int, int, int]): Color for information or markers related to the right hand.
+        total (tuple[int, int, int]): Color for the total finger count text or indicators.
+    """
+
     points: tuple[int, int, int] = rgb_to_bgr(255, 0, 0)
     connections: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
     radius: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
@@ -49,6 +76,13 @@ class ColorScheme:
     total: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
 
     def __post_init__(self):
+        """
+        Converts all color attributes to BGR format after initialization.
+
+        This ensures consistency in color representation for OpenCV,
+        which uses BGR instead of RGB color order.
+        """
+
         self.points = rgb_to_bgr(*self.points)
         self.connections = rgb_to_bgr(*self.connections)
         self.radius = rgb_to_bgr(*self.radius)
@@ -61,6 +95,20 @@ class ColorScheme:
 
 @dataclass(slots=True)
 class HandConfig:
+    r"""
+    Configuration for the hand detection and drawing parameters.
+
+    Attributes:
+        mode (bool): Whether to use static image mode (True) or video stream mode (False).
+        max_hands (int): Maximum number of hands to detect simultaneously.
+        confidence_detect (float): Minimum confidence threshold for hand detection.
+        confidence_trace (float): Minimum confidence threshold for hand tracking.
+        drawing_hands (bool): Whether to draw detected hand outlines and landmarks.
+        drawing_points (bool): Whether to draw individual landmark points.
+        landmark_id (bool): Whether to display landmark ID numbers on the image.
+        size_radius (int): Radius size for drawing landmark circles.
+    """
+
     mode: bool = False
     max_hands: int = 2
     confidence_detect: float = 0.7
