@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 from itertools import product
 from typing import Any
+from dataclasses import dataclass
 from types import ModuleType
 from numpy import dtype, integer, floating, ndarray
 from src.backend.utils import HDPrint
@@ -23,6 +24,51 @@ def rgb_to_bgr(r: int, g: int, b: int) -> tuple[int, int, int]:
         - Useful for OpenCV, which expects colors in BGR order instead of RGB.
     """
     return (b, g, r)
+
+
+@dataclass(slots=True)
+class WindowConfig:
+    name: str = "Count Fingers"
+    width: int = 1280
+    height: int = 720
+    width_frame: int = 1920
+    height_frame: int = 1080
+    fps: int = 30
+    gain: int = 0
+
+
+@dataclass(slots=True)
+class ColorScheme:
+    points: tuple[int, int, int] = rgb_to_bgr(255, 0, 0)
+    connections: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
+    radius: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
+    landmark_id: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
+    rectangle: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
+    left: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
+    right: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
+    total: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
+
+    def __post_init__(self):
+        self.points = rgb_to_bgr(*self.points)
+        self.connections = rgb_to_bgr(*self.connections)
+        self.radius = rgb_to_bgr(*self.radius)
+        self.landmark_id = rgb_to_bgr(*self.landmark_id)
+        self.rectangle = rgb_to_bgr(*self.rectangle)
+        self.left = rgb_to_bgr(*self.left)
+        self.right = rgb_to_bgr(*self.right)
+        self.total = rgb_to_bgr(*self.total)
+
+
+@dataclass(slots=True)
+class HandConfig:
+    mode: bool = False
+    max_hands: int = 2
+    confidence_detect: float = 0.7
+    confidence_trace: float = 0.7
+    drawing_hands: bool = True
+    drawing_points: bool = True
+    landmark_id: bool = True
+    size_radius: int = 7
 
 
 class Hands:
@@ -261,7 +307,7 @@ class Hands:
                 ):
                     h, w, _ = frame.shape
                     cx, cy = int(points.x * w), int(points.y * h)
-                    self._coordinates.append([id, cx, cy, hand.index])
+                    self._coordinates.append([id, cx, cy, hand.label.upper()])
                     if drawing:
                         cv2.circle(frame, (cx, cy), radius, color_radius, cv2.FILLED)
                         if landmark_id:
@@ -318,50 +364,25 @@ class Hands:
 
 class WebCamActivate(Hands):
     r"""
-    Initializes the WebCamActivate class, extending the Hands class, to manage webcam capture
-    and hand detection with configurable display and drawing options.
+    Class for managing webcam capture and real-time hand detection, extending the Hands class.
 
-    This constructor sets up the webcam, window properties, color schemes for drawing landmarks
-    and connections, debug options, and hand detection parameters. It also initializes the
-    parent Hands class with the configured parameters and ensures the webcam is accessible.
+    This class initializes the webcam, sets up display window properties, applies color schemes
+    for landmarks and connections via ColorScheme, configures hand detection parameters via
+    HandConfig, and optionally enables debug output. It automatically initializes the parent
+    Hands class with the configured parameters and ensures webcam accessibility.
 
     Attributes:
-        # Immutable attributes
         _cap (cv2.VideoCapture): Video capture object for accessing the webcam.
         _ret (bool): Flag indicating if the last frame was successfully read.
         _frame (cv2.Mat | ndarray): Stores the last captured frame.
+        window (WindowConfig): Window configuration object (name, size, fps, etc.).
+        colors (ColorScheme): Color configuration for landmarks, points, and overlays.
+        hands_cfg (HandConfig): Hand detection parameters (mode, max_hands, confidence, etc.).
+        points_debug (bool): If True, prints debug information about detected points.
 
-        # Window attributes
-        window_name (str): Name of the display window. Default is "Count Fingers".
-        window_width (int): Width of the display window in pixels. Default is 1280.
-        window_height (int): Height of the display window in pixels. Default is 720.
-        window_width_frame (int): Width of the captured frame in pixels. Default is 1920.
-        window_height_frame (int): Height of the captured frame in pixels. Default is 1080.
-        fps (int): Frames per second for capturing video. Default is 30.
-        gain (int): Webcam gain setting. Default is 0.
-
-        # Color attributes
-        color_points (tuple[int, int, int]): RGB color for hand landmark points.
-        color_connections (tuple[int, int, int]): RGB color for landmark connections.
-        color_radius (tuple[int, int, int]): RGB color for drawing points with radius.
-        color_landmark_id (tuple[int, int, int]): RGB color for landmark IDs.
-        color_rectangle (tuple[int, int, int]): RGB color for rectangles (if used).
-        color_left (tuple[int, int, int]): RGB color for left hand display.
-        color_right (tuple[int, int, int]): RGB color for right hand display.
-        color_total (tuple[int, int, int]): RGB color for total points display.
-
-        # Print/debug attributes
-        points_debug (bool): If True, prints debug information about points.
-
-        # Hand detection attributes
-        mode (bool): MediaPipe Hands mode (False for static, True for tracking). Default is False.
-        max_hands (int): Maximum number of hands to detect. Default is 2.
-        confidence_detect (float): Detection confidence threshold. Default is 0.7.
-        confidence_trace (float): Tracking confidence threshold. Default is 0.7.
-        drawing_hands (bool): Whether to draw detected hands. Default is True.
-        drawing_points (bool): Whether to draw individual landmark points. Default is True.
-        landmark_id (bool): Whether to display landmark IDs. Default is True.
-        size_radius (int): Radius of the drawn points. Default is 7.
+    Notes:
+        - ColorScheme automatically converts RGB tuples to BGR for OpenCV drawing.
+        - HandConfig and WindowConfig encapsulate configuration for easier maintenance and readability.
 
     Raises:
         IOError: If the webcam cannot be accessed.
@@ -371,76 +392,50 @@ class WebCamActivate(Hands):
         self,
     ) -> None:
         """
-        Initializes the WebCamActivate instance to capture video from a webcam and manage hand detection.
+        Class for real-time hand capture and tracking using OpenCV and MediaPipe.
 
-        This initializer sets up:
-        - Webcam access via OpenCV.
-        - Display window properties (name, size, FPS, gain).
-        - Color schemes for landmarks, connections, and other visual elements.
-        - Debug options for printing points.
-        - Hand detection parameters for MediaPipe (mode, max_hands, confidence, drawing options).
-        - Initializes the parent Hands class with the configured parameters.
+        This class handles:
+        - Webcam initialization and configuration.
+        - Display window setup and visual properties.
+        - Hand detection, finger counting, and landmark drawing.
+        - Real-time visualization with finger count overlays.
+        - Debug options for printing detected point coordinates.
 
-        No parameters are passed explicitly to __init__; all settings are configured internally.
+        Main attributes:
+        - _cap: webcam capture object (cv2.VideoCapture)
+        - _frame: current captured frame
+        - window: window configuration (WindowConfig)
+        - colors: color scheme for drawing (ColorScheme)
+        - hands_cfg: hand detection configuration (HandConfig)
+        - points_debug: enables printing coordinates for debugging
 
-        Raises:
-            IOError: If the webcam cannot be accessed.
+        Key methods:
+        - _config_window: sets up the OpenCV window
+        - _config_webcam: adjusts webcam properties
+        - _put_text: overlays finger count information on the frame
+        - mainloop: main loop for capturing, detecting, and displaying frames
         """
 
-        # ----------------------- #
-        # * immutable attributes
-        # ----------------------- #
+        # --- camera attributes ---
         self._cap: cv2.VideoCapture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self._ret: bool = False
         self._frame: cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]] = None
 
-        # ----------------------- #
-        # * window attributes
-        # ----------------------- #
-        self.window_name: str = "Count Fingers"
-        self.window_width: int = 1280
-        self.window_height: int = 720
-        self.window_width_frame: int = 1920
-        self.window_height_frame: int = 1080
-        self.fps: int = 30
-        self.gain: int = 0
+        # --- window configuration ---
+        self.window: WindowConfig = WindowConfig()
+        self.colors: ColorScheme = ColorScheme()
+        self.hands_cfg: HandConfig = HandConfig()
 
-        # ----------------------- #
-        # * color attributes
-        # ----------------------- #
-        self.color_points: tuple[int, int, int] = rgb_to_bgr(255, 0, 0)
-        self.color_connections: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
-        self.color_radius: tuple[int, int, int] = rgb_to_bgr(255, 255, 255)
-        self.color_landmark_id: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
-        self.color_rectangle: tuple[int, int, int] = rgb_to_bgr(0, 0, 0)
-        self.color_left: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)
-        self.color_right: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)
-        self.color_total: tuple[int, int, int] = rgb_to_bgr(0, 255, 60)
-
-        # ----------------------- #
-        # * print attributes
-        # ----------------------- #
+        # --- debug ---
         self.points_debug: bool = True
 
-        # ----------------------- #
-        # * hands init class attributes
-        # ----------------------- #
-        self.mode: bool = False
-        self.max_hands: int = 2
-        self.confidence_detect: float = 0.7
-        self.confidence_trace: float = 0.7
-        self.drawing_hands: bool = True
-        self.drawing_points: bool = True
-        self.landmark_id: bool = True
-        self.size_radius: int = 7
-
         super().__init__(
-            mode=self.mode,
-            max_hands=self.max_hands,
-            confidence_detect=self.confidence_detect,
-            confidence_trace=self.confidence_trace,
-            color_points=self.color_points,
-            color_connections=self.color_connections,
+            mode=self.hands_cfg.mode,
+            max_hands=self.hands_cfg.max_hands,
+            confidence_detect=self.hands_cfg.confidence_detect,
+            confidence_trace=self.hands_cfg.confidence_trace,
+            color_points=self.colors.points,
+            color_connections=self.colors.connections,
         )
 
         if not self._cap.isOpened():
@@ -459,8 +454,8 @@ class WebCamActivate(Hands):
         - Should be called before displaying any frames with `cv2.imshow`.
         """
 
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window_name, self.window_width, self.window_height)
+        cv2.namedWindow(self.window.name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.window.name, self.window.width, self.window.height)
 
     @property
     def _put_text(
@@ -486,7 +481,7 @@ class WebCamActivate(Hands):
 
         total_count: int = self.count_left_point + self.count_right_point
 
-        cv2.rectangle(self._frame, (5, 5), (230, 100), self.color_rectangle, -1)
+        cv2.rectangle(self._frame, (5, 5), (230, 100), self.colors.rectangle, -1)
 
         cv2.putText(
             self._frame,
@@ -494,7 +489,7 @@ class WebCamActivate(Hands):
             (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
-            self.color_left,
+            self.colors.left,
             2,
         )
         cv2.putText(
@@ -503,7 +498,7 @@ class WebCamActivate(Hands):
             (10, 60),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
-            self.color_right,
+            self.colors.right,
             2,
         )
         cv2.putText(
@@ -512,7 +507,7 @@ class WebCamActivate(Hands):
             (10, 90),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
-            self.color_total,
+            self.colors.total,
             2,
         )
 
@@ -521,8 +516,8 @@ class WebCamActivate(Hands):
         r"""
         Configures webcam capture properties.
 
-        - Sets the frame width and height (`self.window_width_frame`, `self.window_height_frame`).
-        - Sets the capture FPS (`self.fps`).
+        - Sets the frame width and height (`self.window.width_frame`, `self.window.height_frame`).
+        - Sets the capture FPS (`self.window.fps`).
         - Sets the webcam gain (`self.gain`).
 
         Notes
@@ -530,10 +525,10 @@ class WebCamActivate(Hands):
         - Must be called before starting the main capture loop to ensure correct settings.
         """
 
-        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.window_width_frame)
-        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.window_height_frame)
-        self._cap.set(cv2.CAP_PROP_FPS, self.fps)
-        self._cap.set(cv2.CAP_PROP_GAIN, self.gain)
+        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.window.width_frame)
+        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.window.height_frame)
+        self._cap.set(cv2.CAP_PROP_FPS, self.window.fps)
+        self._cap.set(cv2.CAP_PROP_GAIN, self.window.gain)
 
     def mainloop(self) -> None:
         r"""
@@ -573,16 +568,16 @@ class WebCamActivate(Hands):
             self._frame = cv2.flip(self._frame, 1)
 
             self._frame = self.search_hands(
-                frame=self._frame, drawing=self.drawing_hands
+                frame=self._frame, drawing=self.hands_cfg.drawing_hands
             )
 
             self._frame = self.search_points(
                 frame=self._frame,
-                drawing=self.drawing_points,
-                color_radius=self.color_radius,
-                color_landmark_id=self.color_landmark_id,
-                radius=self.size_radius,
-                landmark_id=self.landmark_id,
+                drawing=self.hands_cfg.drawing_points,
+                color_radius=self.colors.radius,
+                color_landmark_id=self.colors.landmark_id,
+                radius=self.hands_cfg.size_radius,
+                landmark_id=self.hands_cfg.landmark_id,
             )
 
             if self.points_debug:
@@ -590,12 +585,12 @@ class WebCamActivate(Hands):
 
             self._put_text
 
-            cv2.imshow(self.window_name, self._frame)
+            cv2.imshow(self.window.name, self._frame)
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
-            if cv2.getWindowProperty(self.window_name, cv2.WND_PROP_VISIBLE) < 1:
+            if cv2.getWindowProperty(self.window.name, cv2.WND_PROP_VISIBLE) < 1:
                 break
 
         self._cap.release()
