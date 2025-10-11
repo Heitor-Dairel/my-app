@@ -5,11 +5,24 @@ from typing import Any
 from types import ModuleType
 from numpy import dtype, integer, floating, ndarray
 from src.backend.utils import HDPrint
-from src.backend.helpers import rgb_to_bgr
 
 
-TOP_FINGERS: list[int] = [8, 12, 16, 20]
-MIDDLE_FINGERS: list[int] = [6, 10, 14, 18]
+def rgb_to_bgr(r: int, g: int, b: int) -> tuple[int, int, int]:
+    r"""
+    Convert an RGB color to BGR format.
+
+    Args:
+        r (int): Red component (0-255).
+        g (int): Green component (0-255).
+        b (int): Blue component (0-255).
+
+    Returns:
+        return (tuple[int, int, int]): The color represented in BGR format as (B, G, R).
+
+    Notes:
+        - Useful for OpenCV, which expects colors in BGR order instead of RGB.
+    """
+    return (b, g, r)
 
 
 class Hands:
@@ -19,6 +32,9 @@ class Hands:
     This class initializes the MediaPipe Hands module, setting detection and tracking
     parameters, as well as colors for points and connections drawn on the image.
     """
+
+    TOP_FINGERS: list[int] = [8, 12, 16, 20]
+    MIDDLE_FINGERS: list[int] = [6, 10, 14, 18]
 
     def __init__(
         self,
@@ -110,7 +126,7 @@ class Hands:
         hand_lm: Any = hand_landmarks.landmark
         count_fg: int = 0
 
-        for tf, mf in zip(TOP_FINGERS, MIDDLE_FINGERS):
+        for tf, mf in zip(Hands.TOP_FINGERS, Hands.MIDDLE_FINGERS):
             count_fg += 1 if hand_lm[tf].y < hand_lm[mf].y else 0
 
         if handedness_index:
