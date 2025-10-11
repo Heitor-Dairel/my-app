@@ -1,9 +1,9 @@
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
+from argon2.low_level import hash_secret_raw, Type
 import os
 import base64
 import binascii
-from src.backend.helpers import generate_key
 
 
 class EncryptionCodeDecode:
@@ -37,6 +37,34 @@ class EncryptionCodeDecode:
         self.value: str = value
         self.password: str = password
 
+    @staticmethod
+    def _generate_key(password: str, salt: bytes) -> bytes:
+        r"""
+        Derive a secure 256-bit key from a password and salt using Argon2id.
+
+        This function generates a key suitable for AES-256 encryption by applying
+        the Argon2id key derivation function with specified time cost, memory cost,
+        and parallelism.
+
+        Args:
+            password (str): The password to derive the key from.
+            salt (bytes): A unique salt to ensure uniqueness of the key.
+
+        Returns:
+            return (bytes): 32-byte (256-bit) derived key.
+        """
+
+        key: bytes = hash_secret_raw(
+            secret=password.encode(),
+            salt=salt,
+            time_cost=3,  # *number of iterations
+            memory_cost=64 * 1024,  # *memory used in KB (64 MB)
+            parallelism=2,  # *threads
+            hash_len=32,  # *32 bytes = 256 bits for AES-256
+            type=Type.ID,
+        )
+        return key
+
     @property
     def encrypt(self) -> str:
         r"""
@@ -54,7 +82,7 @@ class EncryptionCodeDecode:
 
         salt: bytes = os.urandom(32)  # *larger salt (32 bytes)
         nonce: bytes = os.urandom(16)  # *larger nonce (16 bytes)
-        key: bytes = generate_key(self.password, salt)
+        key: bytes = self._generate_key(self.password, salt)
         aesgcm: AESGCM = AESGCM(key)
         encrypted: bytes = aesgcm.encrypt(nonce, self.value.encode(), None)
         # *We return salt + nonce + encrypted in base64
@@ -81,7 +109,7 @@ class EncryptionCodeDecode:
             salt: bytes = data[:32]
             nonce: bytes = data[32:48]  # the next 16 bytes
             encrypted: bytes = data[48:]
-            key: bytes = generate_key(self.password, salt)
+            key: bytes = self._generate_key(self.password, salt)
             aesgcm: AESGCM = AESGCM(key)
             return aesgcm.decrypt(nonce, encrypted, None).decode()
         except (binascii.Error, InvalidTag):
@@ -103,4 +131,4 @@ if __name__ == "__main__":
         ).decrypt
     )
 
-    # python -m src.modules.codec.encryption_code_decode
+    # python -W ignore -m src.backend.modules.codec.encryption_code_decode

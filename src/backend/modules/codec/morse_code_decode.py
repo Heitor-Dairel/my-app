@@ -31,7 +31,7 @@ class MorseCodeDecode:
 
     Class Attributes:
         CONFIG_BEEP (Final[DictMorse]): Configuration for beep sound including
-            sampling frequency, beep frequency, and volume.
+        sampling frequency, beep frequency, and volume.
         TEXTMORSE (Final[dict[str, str]]): Mapping of characters to Morse code.
         MORSETEXT (Final[dict[str, str]]): Reverse mapping of Morse code to characters.
         MORSESOUND (Final[dict[str, float]]): Timing configuration for Morse symbols.
@@ -223,7 +223,7 @@ class MorseCodeDecode:
             sound (bool, optional): If True, plays the Morse code as sound. Defaults to False.
 
         Returns:
-            str | None: Encoded Morse code string if valid characters exist, else None.
+            return (str | None): Encoded Morse code string if valid characters exist, else None.
 
         Notes:
             - Uses the TEXTMORSE dictionary for character-to-Morse conversion.
