@@ -187,6 +187,88 @@ class Hands:
         )
         self._coordinates: list[list[Any]] | None = None
 
+    @property
+    def me_hands(self) -> ModuleType:
+        r"""
+        Get the MediaPipe hands module.
+
+        Returns:
+            ModuleType: The MediaPipe `hands` module used for hand detection.
+        """
+
+        return self._mp_hands
+
+    @property
+    def hands(self) -> mp.solutions.hands.Hands:
+        r"""
+        Get the MediaPipe Hands object.
+
+        Returns:
+            mp.solutions.hands.Hands: The initialized MediaPipe Hands instance
+            used to process video frames.
+        """
+
+        return self._hands
+
+    @property
+    def result(self) -> Any:
+        r"""
+        Get the latest hand detection result.
+
+        Returns:
+            Any: The output from MediaPipe Hands after processing the current frame.
+        """
+
+        return self._result
+
+    @property
+    def drawing(self) -> ModuleType:
+        r"""
+        Get the MediaPipe drawing utilities module.
+
+        Returns:
+            ModuleType: The `drawing_utils` module used for rendering landmarks
+            and connections.
+        """
+
+        return self._drawing
+
+    @property
+    def drawing_points(self) -> mp.solutions.drawing_utils.DrawingSpec:
+        r"""
+        Get the DrawingSpec for hand landmark points.
+
+        Returns:
+            mp.solutions.drawing_utils.DrawingSpec: The drawing configuration
+            used for rendering individual hand landmarks.
+        """
+
+        return self._drawing_points
+
+    @property
+    def drawing_connections(self) -> mp.solutions.drawing_utils.DrawingSpec:
+        r"""
+        Get the DrawingSpec for hand connections.
+
+        Returns:
+            mp.solutions.drawing_utils.DrawingSpec: The drawing configuration
+            used for rendering connections between landmarks.
+        """
+
+        return self._drawing_connections
+
+    @property
+    def coordinates(self) -> list[list[Any]] | None:
+        r"""
+        Get the list of detected hand coordinates.
+
+        Returns:
+            (list[list[Any]] | None): A nested list of coordinates for each detected hand,
+            or None if no hands are detected.
+        """
+
+        return self._coordinates
+
     @staticmethod
     def _count_fingers(hand_landmarks: Any, handedness_index: int) -> int:
         r"""
@@ -412,70 +494,55 @@ class Hands:
 
 class WebCamActivate(Hands):
     r"""
-    Class for managing webcam capture and real-time hand detection, extending the Hands class.
+    WebCamActivate class for managing real-time hand detection via webcam.
 
-    This class initializes the webcam, sets up display window properties, applies color schemes
-    for landmarks and connections via ColorScheme, configures hand detection parameters via
-    HandConfig, and optionally enables debug output. It automatically initializes the parent
-    Hands class with the configured parameters and ensures webcam accessibility.
-
-    Attributes:
-        _cap (cv2.VideoCapture): Video capture object for accessing the webcam.
-        _ret (bool): Flag indicating if the last frame was successfully read.
-        _frame (cv2.Mat | ndarray): Stores the last captured frame.
-        window (WindowConfig): Window configuration object (name, size, fps, etc.).
-        colors (ColorScheme): Color configuration for landmarks, points, and overlays.
-        hands_cfg (HandConfig): Hand detection parameters (mode, max_hands, confidence, etc.).
-        points_debug (bool): If True, prints debug information about detected points.
-
-    Notes:
-        - ColorScheme automatically converts RGB tuples to BGR for OpenCV drawing.
-        - HandConfig and WindowConfig encapsulate configuration for easier maintenance and readability.
-
-    Raises:
-        IOError: If the webcam cannot be accessed.
+    This class extends the Hands class and provides a complete system for
+    capturing video from a webcam, detecting hands and landmarks in real-time,
+    overlaying visual information, and optionally providing debug output.
     """
 
     def __init__(
         self,
     ) -> None:
         """
-        Class for real-time hand capture and tracking using OpenCV and MediaPipe.
+        Initialize the webcam capture system and configure hand detection settings.
 
-        This class handles:
-        - Webcam initialization and configuration.
-        - Display window setup and visual properties.
-        - Hand detection, finger counting, and landmark drawing.
-        - Real-time visualization with finger count overlays.
-        - Debug options for printing detected point coordinates.
+        This constructor sets up the webcam, window parameters, color schemes,
+        and hand detection configuration. It also initializes internal attributes
+        used for frame processing and debugging.
 
-        Main attributes:
-        - _cap: webcam capture object (cv2.VideoCapture)
-        - _frame: current captured frame
-        - window: window configuration (WindowConfig)
-        - colors: color scheme for drawing (ColorScheme)
-        - hands_cfg: hand detection configuration (HandConfig)
-        - points_debug: enables printing coordinates for debugging
+        Components initialized:
+            - Webcam:
+                Opens the default webcam using OpenCV with the DirectShow backend,
+                setting up attributes for frame capture (`_cap`), capture status (`_ret`),
+                and the current frame (`_frame`). Also defines `_webcamrun` to control
+                the main loop execution. Raises an `IOError` if the webcam cannot be accessed.
 
-        Key methods:
-        - _config_window: sets up the OpenCV window
-        - _config_webcam: adjusts webcam properties
-        - _put_text: overlays finger count information on the frame
-        - mainloop: main loop for capturing, detecting, and displaying frames
+            - Window and Visual Settings:
+                `window` defines frame dimensions, FPS, and gain.
+                `colors` defines the color scheme for points, hands, and overlays.
+                `hands_cfg` defines hand detection parameters such as mode, max hands,
+                detection confidence, and tracking confidence.
+
+            - Debug:
+                `points_debug` enables printing of landmark coordinates for debugging.
+
+            - Superclass Initialization:
+                Passes hand detection parameters and color configuration to the parent
+                class for proper setup.
+
+        Raises:
+            IOError: If the webcam cannot be opened.
         """
 
-        # --- camera attributes ---
         self._cap: cv2.VideoCapture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         self._ret: bool = False
         self._frame: cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]] = None
-
-        # --- window configuration ---
+        self._webcamrun: bool = True
+        self.points_debug: bool = True
         self.window: WindowConfig = WindowConfig()
         self.colors: ColorScheme = ColorScheme()
         self.hands_cfg: HandConfig = HandConfig()
-
-        # --- debug ---
-        self.points_debug: bool = True
 
         super().__init__(
             mode=self.hands_cfg.mode,
@@ -490,6 +557,61 @@ class WebCamActivate(Hands):
             raise IOError("Unable to access webcam.")
 
     @property
+    def cap(self) -> cv2.VideoCapture:
+        r"""
+        Get the internal OpenCV VideoCapture object.
+
+        This property provides read-only access to the webcam capture instance
+        used for acquiring frames from the camera.
+
+        Returns:
+            cv2.VideoCapture: The VideoCapture object managing webcam input.
+        """
+
+        return self._cap
+
+    @property
+    def ret(self) -> bool:
+        r"""
+        Get the status of the last frame capture.
+
+        This property provides read-only access to the result of the most recent
+        frame acquisition attempt, indicating whether it was successful.
+
+        Returns:
+            bool: True if the last frame was successfully captured, False otherwise.
+        """
+
+        return self._ret
+
+    @property
+    def frame(self) -> cv2.Mat | ndarray[Any, dtype[integer[Any] | floating[Any]]]:
+        r"""
+        Get the current video frame.
+
+        This property provides read-only access to the latest captured frame,
+        represented either as an OpenCV Mat or a NumPy array.
+
+        Returns:
+            (cv2.Mat | ndarray): The most recent video frame.
+        """
+
+        return self._frame
+
+    @property
+    def webcamrun(self) -> bool:
+        r"""
+        Get the webcam loop running status.
+
+        This property provides read-only access to the flag indicating whether
+        the main webcam loop is currently active.
+
+        Returns:
+            bool: True if the main webcam loop is running, False otherwise.
+        """
+
+        return self._webcamrun
+
     def _config_window(self) -> None:
         r"""
         Configures the OpenCV display window.
@@ -505,26 +627,22 @@ class WebCamActivate(Hands):
         cv2.namedWindow(self.window.name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.window.name, self.window.width, self.window.height)
 
-    @property
     def _put_text(
         self,
     ) -> None:
         r"""
-        Draws finger count information on the current frame.
+        Overlay hand count information on the current video frame.
 
-        - Draws a background rectangle at the top-left corner.
-        - Displays left-hand, right-hand, and total finger counts.
-        - Uses configurable colors:
-            - `color_rectangle`: background rectangle
-            - `color_left`: left-hand count text
-            - `color_right`: right-hand count text
-            - `color_total`: total finger count text
+        This method draws a semi-transparent rectangle in the top-left corner of
+        the frame and displays the number of fingers detected for the left hand,
+        right hand, and total count. Colors for each hand and the total are
+        taken from the configured color scheme.
 
-        Notes
-        -----
-        - Relies on `self._frame` for drawing.
-        - Uses `self.count_left_point` and `self.count_right_point` for counts.
-        - Call after updating the frame with hand detection results.
+        Details:
+            - Left-hand count is shown in the configured left-hand color.
+            - Right-hand count is shown in the configured right-hand color.
+            - Total fingers count is shown in the configured total color.
+            - Uses OpenCV's FONT_HERSHEY_SIMPLEX for text rendering with fixed font size and thickness.
         """
 
         total_count: int = self.count_left_point + self.count_right_point
@@ -559,18 +677,12 @@ class WebCamActivate(Hands):
             2,
         )
 
-    @property
     def _config_webcam(self) -> None:
         r"""
-        Configures webcam capture properties.
+        Configure the webcam capture settings.
 
-        - Sets the frame width and height (`self.window.width_frame`, `self.window.height_frame`).
-        - Sets the capture FPS (`self.window.fps`).
-        - Sets the webcam gain (`self.gain`).
-
-        Notes
-        -----
-        - Must be called before starting the main capture loop to ensure correct settings.
+        Sets the frame width, frame height, frames per second (FPS), and gain
+        for the webcam using values defined in the `window` configuration.
         """
 
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.window.width_frame)
@@ -580,34 +692,32 @@ class WebCamActivate(Hands):
 
     def mainloop(self) -> None:
         r"""
-        Runs the main loop for real-time hand tracking and visualization.
+        Run the main loop for webcam capture and real-time hand processing.
 
-        This method continuously captures frames from the webcam, processes them to detect
-        hands and landmarks, optionally draws landmarks and IDs, and displays the results
-        in a window. It also prints debug information if enabled.
+        Initializes the webcam and window configurations, then continuously captures
+        and processes frames for hand and landmark detection. The loop overlays visual
+        elements, updates text information, and displays the resulting frame until the
+        user presses the ESC key or closes the window.
 
         Steps performed:
-        1. Configure the display window and webcam settings.
-        2. Enter a continuous loop:
-            - Capture a frame from the webcam.
-            - Flip the frame horizontally for a mirror effect.
-            - Detect hands and draw landmarks if enabled.
-            - Detect landmark points and draw them with IDs if enabled.
-            - Print coordinates for debugging if `points_debug` is True.
-            - Overlay additional text via `_put_text`.
-            - Display the frame in the configured window.
-        3. Exit the loop if the user presses the ESC key or closes the window.
-        4. Release the webcam and destroy all OpenCV windows on exit.
+            1. Capture a frame from the webcam.
+            2. Flip the frame horizontally for a mirror effect.
+            3. Detect and optionally draw hands.
+            4. Detect and optionally draw landmarks and points.
+            5. Optionally print detected coordinates for debugging.
+            6. Overlay hand count and other information on the frame.
+            7. Display the processed frame in the application window.
+            8. Exit the loop on ESC press or window closure.
 
         Raises:
             RuntimeError: If a frame cannot be captured from the webcam.
         """
 
-        self._config_window
+        self._config_window()
 
-        self._config_webcam
+        self._config_webcam()
 
-        while True:
+        while self._webcamrun:
 
             self._ret, self._frame = self._cap.read()
             if not self._ret:
@@ -631,7 +741,7 @@ class WebCamActivate(Hands):
             if self.points_debug:
                 HDPrint(self._coordinates).print()
 
-            self._put_text
+            self._put_text()
 
             cv2.imshow(self.window.name, self._frame)
 
@@ -644,10 +754,27 @@ class WebCamActivate(Hands):
         self._cap.release()
         cv2.destroyAllWindows()
 
+    def stop(self) -> None:
+        r"""
+        Stop the webcam main loop.
+
+        Sets the internal `_webcamrun` flag to False, which causes the main loop
+        in `mainloop()` to exit gracefully on the next iteration.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
+
+        self._webcamrun = False
+
 
 if __name__ == "__main__":
 
     webcam = WebCamActivate()
     webcam.mainloop()
+
 
 # python -W ignore -m src.backend.modules.math.webcam_fingers
