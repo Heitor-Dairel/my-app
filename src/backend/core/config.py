@@ -61,6 +61,104 @@ class ConnectDB:
         self._header: list[tuple[Any, ...]] | tuple[Any, ...] | None = None
         self._sql: str | None = None
 
+    @property
+    def user(self) -> str | None:
+        r"""
+        Return the database username.
+
+        Property:
+            user (str | None): Provides read-only access to the database username.
+
+        Notes:
+            - Returns None if the username has not been set.
+        """
+
+        return self._user
+
+    @property
+    def password(self) -> str | None:
+        r"""
+        Return the database password.
+
+        Property:
+            password (str | None): Provides read-only access to the database password.
+
+        Notes:
+            - Returns None if the password has not been set.
+        """
+
+        return self._password
+
+    @property
+    def dsn(self) -> str | None:
+        r"""
+        Return the database DSN (Data Source Name).
+
+        Property:
+            dsn (str | None): Provides read-only access to the configured database DSN.
+
+        Notes:
+            - Returns None if the DSN has not been set.
+        """
+
+        return self._dsn
+
+    @property
+    def conn(self) -> oracledb.AsyncConnection | None:
+        r"""
+        Return the active database connection.
+
+        Property:
+            conn (oracledb.AsyncConnection | None): Provides read-only access to the active asynchronous database connection.
+
+        Notes:
+            - Returns None if no connection has been established.
+        """
+
+        return self._conn
+
+    @property
+    def rows(self) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
+        r"""
+        Return the rows fetched from the last executed query.
+
+        Property:
+            rows (list[tuple[Any, ...]] | tuple[Any, ...] | None): Provides read-only access to the results of the last executed query.
+
+        Notes:
+            - Returns None if no query has been executed.
+        """
+
+        return self._rows
+
+    @property
+    def header(self) -> list[tuple[Any, ...]] | tuple[Any, ...] | None:
+        r"""
+        Return the column headers of the last SELECT query.
+
+        Property:
+            header (list[tuple[Any, ...]] | tuple[Any, ...] | None): Provides read-only access to the column headers.
+
+        Notes:
+            - Returns None if no SELECT query has been executed.
+        """
+
+        return self._header
+
+    @property
+    def sql(self) -> str | None:
+        r"""
+        Return the last loaded SQL statement.
+
+        Property:
+            sql (str | None): Provides read-only access to the last loaded SQL statement.
+
+        Notes:
+            - Returns None if no SQL statement has been loaded.
+        """
+
+        return self._sql
+
     async def connect(self) -> None:
         r"""
         Establish an asynchronous connection to the Oracle database.
