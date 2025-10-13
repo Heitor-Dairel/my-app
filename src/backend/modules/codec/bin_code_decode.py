@@ -68,7 +68,6 @@ class BinCodeDecode:
         size_binary: bool = all(len(i) == 8 for i in text.split())
         return contains_zero_one and size_binary
 
-    @property
     def tobin(self) -> str | None:
         r"""
         Convert the stored text (`value`) into its 8-bit binary representation.
@@ -91,7 +90,6 @@ class BinCodeDecode:
         )
         return result or None
 
-    @property
     def totxt(self) -> str | None:
         r"""
         Convert the stored binary string (`value`) back into text.
@@ -116,8 +114,8 @@ class BinCodeDecode:
 
 if __name__ == "__main__":
 
-    binario = BinCodeDecode("a€").tobin
-    txt = BinCodeDecode("10110010 10111101 11100001").totxt
+    binario = BinCodeDecode("a€").tobin()
+    txt = BinCodeDecode("10110010 10111101 11100001").totxt()
 
     print(binario)
     print(txt)

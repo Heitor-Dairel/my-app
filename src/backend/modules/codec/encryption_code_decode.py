@@ -65,7 +65,6 @@ class EncryptionCodeDecode:
         )
         return key
 
-    @property
     def encrypt(self) -> str:
         r"""
         Encrypt the instance's `value` using AES-256-GCM.
@@ -88,7 +87,6 @@ class EncryptionCodeDecode:
         # *We return salt + nonce + encrypted in base64
         return base64.b64encode(salt + nonce + encrypted).decode()
 
-    @property
     def decrypt(self) -> str | None:
         r"""
         Decrypt the base64-encoded `value`.
@@ -117,18 +115,18 @@ class EncryptionCodeDecode:
 
 
 if __name__ == "__main__":
-    teste1 = EncryptionCodeDecode("fdfsfs", "oio").encrypt
+    teste1 = EncryptionCodeDecode("fdfsfs", "oio").encrypt()
     print(
         EncryptionCodeDecode(
             "bdPzFEW1iTviXbnbzmzO1v8fCzWt/0w9UJ2Od6KZzgwU1cu1NC8VstuBygSNrhNL5+Vggu3x0eyDRu5CrMSubF+p0Q==",
             "h",
-        ).decrypt
+        ).decrypt()
     )
     print(
         EncryptionCodeDecode(
             "wmKWlws3NI7S3N9R8+izGwZtX5fz/IxqzgaPy7V7LR3Z+54LOcqxYdxwRNBJzyj5Y/Pn6FFtgN5H17HvOz9X7dstB1QUCw==",
             "oio",
-        ).decrypt
+        ).decrypt()
     )
 
     # python -W ignore -m src.backend.modules.codec.encryption_code_decode
