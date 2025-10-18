@@ -3,6 +3,18 @@ from typing import Literal, Final, Callable
 
 
 class CalcYear:
+    r"""
+    Calculate Easter dates, movable holidays, and leap years for a given year.
+
+    This class provides methods to:
+        - Compute the date of Easter according to the Gregorian or Julian calendar.
+        - Calculate the dates of Carnival, Good Friday, and Corpus Christi relative to Easter.
+        - Determine if a year is a leap year.
+        - Generate sequences of these dates across multiple years.
+
+    Attributes:
+        year (int): The base year used for calculations.
+    """
 
     HOLIDAY = Literal["Carnival", "Good Friday", "Corpus Christi"] | None
     CALENDAR = Literal["Gregorian", "Julian"] | None
@@ -18,11 +30,26 @@ class CalcYear:
     ORDER_BY: Final[dict[str, bool]] = {"asc": False, "desc": True}
 
     def __init__(self, year: int) -> None:
+        """
+        Initialize the calculator with a specific year.
+
+        Args:
+            year (int): The base year for computations.
+        """
 
         self.year: int = year
 
     @staticmethod
     def _easter_gregorian(year: int) -> date:
+        r"""
+        Calculate the date of Easter for the given year using the Gregorian calendar.
+
+        Args:
+            year (int): The year to calculate Easter for.
+
+        Returns:
+            date: The calculated Easter date.
+        """
 
         var_a: int = year % 19
         var_b: int = year // 100
@@ -43,6 +70,15 @@ class CalcYear:
 
     @staticmethod
     def _easter_julian(year: int) -> date:
+        r"""
+        Calculate the date of Easter for the given year using the Julian calendar.
+
+        Args:
+            year (int): The year to calculate Easter for.
+
+        Returns:
+            date: The calculated Easter date.
+        """
 
         var_a: int = year % 4
         var_b: int = year % 7
@@ -56,6 +92,17 @@ class CalcYear:
 
     @staticmethod
     def _calendar_check(year: int, calendar_type: CALENDAR = None) -> date:
+        r"""
+        Return the Easter date for the given year and calendar type.
+
+        Args:
+            year (int): The year to calculate Easter for.
+            calendar_type (CALENDAR, optional): "Gregorian" or "Julian". Defaults to None,
+                in which case the Gregorian calendar is used for years >= 1582.
+
+        Returns:
+            date: The Easter date for the given year and calendar.
+        """
 
         if calendar_type:
             return CalcYear.FLAG_CALENDAR[calendar_type](year)
@@ -66,6 +113,17 @@ class CalcYear:
 
     @staticmethod
     def _holiday_check(date: date, holiday_type: HOLIDAY = None) -> date:
+        r"""
+        Return the date of a movable holiday based on Easter.
+
+        Args:
+            date (date): The Easter date.
+            holiday_type (HOLIDAY, optional): Type of holiday ("Carnival", "Good Friday", "Corpus Christi").
+                Defaults to None, returning the input date.
+
+        Returns:
+            date: The holiday date.
+        """
 
         if holiday_type:
             return CalcYear.SUM_HOLIDAY[holiday_type](date)
@@ -73,6 +131,15 @@ class CalcYear:
 
     @staticmethod
     def _leap_year_check(year: int) -> bool:
+        r"""
+        Determine if a year is a leap year.
+
+        Args:
+            year (int): The year to check.
+
+        Returns:
+            bool: True if the year is a leap year, False otherwise.
+        """
 
         if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0):
 
@@ -90,6 +157,23 @@ class CalcYear:
         year_step: int = 1,
         order_by: Literal["asc", "desc"] = "desc",
     ) -> list[str] | str | None:
+        r"""
+        Calculate Easter or a movable holiday date(s) for the current year.
+
+        Args:
+            calendar_type (CALENDAR, optional): "Gregorian" or "Julian". Defaults to None.
+            holiday_type (HOLIDAY, optional): Type of holiday ("Carnival", "Good Friday", "Corpus Christi"). Defaults to None.
+            all_results (bool, optional): If True, returns dates for multiple years. Defaults to False.
+            range_years (int, optional): Number of years to calculate when all_results is True. Defaults to 10.
+            year_step (int, optional): Step between years when all_results is True. Defaults to 1.
+            order_by (Literal["asc", "desc"], optional): Sort order for multiple years. Defaults to "desc".
+
+        Returns:
+            (str | list[str] | None): Formatted date string(s). Returns None if the base year is invalid.
+
+        Raises:
+            Exception: If range_years <= 1.
+        """
 
         if self.year <= 0:
             return None
@@ -134,6 +218,21 @@ class CalcYear:
         year_step: int = 1,
         order_by: Literal["asc", "desc"] = "desc",
     ) -> dict[int, bool] | None:
+        r"""
+        Determine if the current year or a sequence of years are leap years.
+
+        Args:
+            all_results (bool, optional): If True, returns results for multiple years. Defaults to False.
+            range_years (int, optional): Number of years to calculate when all_results is True. Defaults to 10.
+            year_step (int, optional): Step between years when all_results is True. Defaults to 1.
+            order_by (Literal["asc", "desc"], optional): Sort order for multiple years. Defaults to "desc".
+
+        Returns:
+            (dict[int, bool] | None): Dictionary mapping years to leap year status, or None if the base year is invalid.
+
+        Raises:
+            Exception: If range_years <= 1.
+        """
 
         if self.year <= 0:
             return None
