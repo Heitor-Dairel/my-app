@@ -219,7 +219,7 @@ class ConnectDB:
 
     @staticmethod
     def _recurrence(
-        headers: list[tuple[Any, ...]] | tuple[Any, ...],
+        headers: tuple[Any, ...],
         results: tuple[Any, ...] | list[tuple[Any, ...]] | None,
         headers_style: Literal["upper", "lower", "title"] = "title",
     ) -> list[dict[str, Any]] | None:
@@ -233,7 +233,7 @@ class ConnectDB:
             4. Return the list of dictionaries, or None if `results` is empty.
 
         Args:
-            headers (list[tuple[Any, ...]] | tuple[Any, ...]): Column metadata from a database cursor.
+            headers (tuple[Any, ...]): Column metadata from a database cursor.
             results (tuple[Any, ...] | list[tuple[Any, ...]] | None): Single row or multiple row tuples returned by a query.
             headers_style (Literal["upper", "lower", "title"], optional): Format style for header names. Defaults to "title".
 
