@@ -71,11 +71,6 @@ def fibonacci_serie(number: int = 10, single: bool = False) -> list[str] | str |
         ```
     """
 
-    a: int = 0
-    b: int = 1
-    result: str | None = None
-    lista: list[str] = []
-
     if number > 20000:
         msg: str = f"Number {number!r} out of range."
         raise Exception(msg)
@@ -85,7 +80,12 @@ def fibonacci_serie(number: int = 10, single: bool = False) -> list[str] | str |
         raise Exception(msg)
 
     if number == 0:
-        return result
+        return None
+
+    a: int = 0
+    b: int = 1
+    result: str
+    lista: list[str] = []
 
     if not single:
         for _ in range(number):

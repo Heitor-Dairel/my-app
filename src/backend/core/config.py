@@ -3,7 +3,7 @@ import asyncio
 import oracledb
 import aiofiles
 from dotenv import load_dotenv
-from typing import Any, Final, Literal, AsyncGenerator
+from typing import Any, Final, Literal, AsyncGenerator, Callable
 from pathlib import Path
 from src.backend.utils import HDPrint
 
@@ -33,10 +33,10 @@ class ConnectDB:
         "UPDATE": "updated successfully",
         "DELETE": "deleted successfully",
     }
-    DICT_STYLE: Final[dict[str, Any]] = {
-        "upper": lambda a: a.upper(),
-        "lower": lambda a: a.lower(),
-        "title": lambda a: a,
+    DICT_STYLE: Final[dict[str, Callable[[str], str]]] = {
+        "upper": lambda x: x.upper(),
+        "lower": lambda x: x.lower(),
+        "title": lambda x: x,
     }
 
     def __init__(self) -> None:
