@@ -1,3 +1,0 @@
-def fibonacci_serie(
-    number: int = 10, single: bool = False
-) -> list[int] | str | None: ...
