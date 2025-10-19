@@ -81,7 +81,7 @@ class EncryptionCodeDecode:
 
         salt: bytes = os.urandom(32)  # *larger salt (32 bytes)
         nonce: bytes = os.urandom(16)  # *larger nonce (16 bytes)
-        key: bytes = self._generate_key(self.password, salt)
+        key: bytes = EncryptionCodeDecode._generate_key(self.password, salt)
         aesgcm: AESGCM = AESGCM(key)
         encrypted: bytes = aesgcm.encrypt(nonce, self.value.encode(), None)
         # *We return salt + nonce + encrypted in base64
@@ -107,7 +107,7 @@ class EncryptionCodeDecode:
             salt: bytes = data[:32]
             nonce: bytes = data[32:48]  # the next 16 bytes
             encrypted: bytes = data[48:]
-            key: bytes = self._generate_key(self.password, salt)
+            key: bytes = EncryptionCodeDecode._generate_key(self.password, salt)
             aesgcm: AESGCM = AESGCM(key)
             return aesgcm.decrypt(nonce, encrypted, None).decode()
         except (binascii.Error, InvalidTag):
