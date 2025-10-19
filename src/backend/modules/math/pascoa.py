@@ -186,20 +186,22 @@ class CalcYear:
 
         list_computus: list[str] = []
 
-        result_computus: date = self._calendar_check(calc_year, calendar_type)
+        result_computus: date = CalcYear._calendar_check(calc_year, calendar_type)
 
         if not all_results:
 
-            return self._holiday_check(result_computus, holiday_type).strftime(
+            return CalcYear._holiday_check(result_computus, holiday_type).strftime(
                 "%d/%m/%Y"
             )
 
         for _ in range(range_years):
 
-            result_computus: date = self._calendar_check(calc_year, calendar_type)
+            result_computus: date = CalcYear._calendar_check(calc_year, calendar_type)
 
             list_computus.append(
-                self._holiday_check(result_computus, holiday_type).strftime("%d/%m/%Y")
+                CalcYear._holiday_check(result_computus, holiday_type).strftime(
+                    "%d/%m/%Y"
+                )
             )
 
             calc_year += year_step
@@ -207,7 +209,7 @@ class CalcYear:
         return sorted(
             list_computus,
             key=lambda x: x.split("/")[-1],
-            reverse=self.ORDER_BY[order_by],
+            reverse=CalcYear.ORDER_BY[order_by],
         )
 
     def leap_year(
@@ -261,7 +263,7 @@ class CalcYear:
             sorted(
                 result_leap_year.items(),
                 key=lambda x: x[0],
-                reverse=self.ORDER_BY[order_by],
+                reverse=CalcYear.ORDER_BY[order_by],
             )
         )
 
