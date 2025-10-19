@@ -204,7 +204,7 @@ class ConnectDB:
             file_path (str): Name of the SQL file inside the folder.
 
         Returns:
-            return (str | None): The content of the SQL file as a string, or None if the file is empty.
+            (str | None): The content of the SQL file as a string, or None if the file is empty.
 
         Raises:
             FileNotFoundError: If the specified SQL file does not exist.
@@ -219,31 +219,42 @@ class ConnectDB:
 
     @staticmethod
     def _recurrence(
-        headers: tuple[Any, ...],
-        results: tuple[Any, ...] | list[tuple[Any, ...]] | None,
+        headers: list[tuple[Any, ...]] | tuple[Any, ...] | None,
+        results: list[tuple[Any, ...]] | tuple[Any, ...] | None,
         headers_style: Literal["upper", "lower", "title"] = "title",
     ) -> list[dict[str, Any]] | None:
         r"""
-        Map SQL query results to a list of dictionaries using column headers.
+        Convert SQL query results into a list of dictionaries using column headers.
 
-        Process:
-            1. Format the header names according to `headers_style` ("upper", "lower", "title").
-            2. Normalize `results` to a list of tuples if a single tuple is provided.
-            3. Zip each row with the formatted headers to create dictionaries.
-            4. Return the list of dictionaries, or None if `results` is empty.
+        This method maps each row of query results to a dictionary, where keys are
+        derived from column names (`headers`) and values correspond to row data.
+        The header names can be formatted according to the specified style.
+
+        Steps:
+            1. Format header names based on `headers_style` ("upper", "lower", or "title").
+            2. Ensure `results` is a list of tuples (normalize single tuple inputs).
+            3. Zip each result row with formatted headers to create dictionaries.
+            4. Return a list of these dictionaries, or None if no results are provided.
 
         Args:
-            headers (tuple[Any, ...]): Column metadata from a database cursor.
-            results (tuple[Any, ...] | list[tuple[Any, ...]] | None): Single row or multiple row tuples returned by a query.
-            headers_style (Literal["upper", "lower", "title"], optional): Format style for header names. Defaults to "title".
+            headers (list[tuple[Any, ...]] | tuple[Any, ...] | None):
+                Metadata from a database cursor containing column names.
+            results (list[tuple[Any, ...]] | tuple[Any, ...] | None):
+                Query results as tuples, either a single row or multiple rows.
+            headers_style (Literal["upper", "lower", "title"], optional):
+                Case formatting for header names. Defaults to "title".
 
         Returns:
-            return (list[dict[str, Any]] | None): List of dictionaries mapping headers to row values, or None if no results.
+            (list[dict[str, Any]] | None):
+                A list of dictionaries mapping headers to row values, or None if
+                `results` is empty.
         """
 
-        headers_names: list[str] = [
-            ConnectDB.DICT_STYLE[headers_style](h[0]) for h in headers
-        ]
+        if headers:
+
+            headers_names: list[str] = [
+                ConnectDB.DICT_STYLE[headers_style](h[0]) for h in headers
+            ]
 
         if results:
             rows_result: list[tuple[Any, ...]] = (
@@ -298,7 +309,7 @@ class ConnectDB:
             self.rows (list[tuple[Any, ...]] | tuple[Any, ...] | None): Query results.
 
         Returns:
-            return (list[dict[str, Any]] | str | None):
+            (list[dict[str, Any]] | str | None):
                 - List of dictionaries mapping column names to values (for `SELECT`).
                 - Success message string (for `INSERT`, `UPDATE`, `DELETE`).
                 - None if no rows are returned.
@@ -363,7 +374,7 @@ if __name__ == "__main__":
 
         await db.connect()
 
-        result = await db.select("SELECT", "teste.sql", True, {"teste": 1})
+        result = await db.select("SELECT", "teste.sql", False, {"teste": 1})
 
         if result is not None:
             HDPrint(*result).print_json()
