@@ -84,7 +84,7 @@ class BinCodeDecode:
             or None if the result is empty.
         """
 
-        text_verifi: str = self._str_verifi_val(self.value)
+        text_verifi: str = BinCodeDecode._str_verifi_val(self.value)
         result: str = " ".join(
             [format(byt, "08b") for byt in text_verifi.encode("latin-1")]
         )
@@ -103,7 +103,7 @@ class BinCodeDecode:
             return (str | None): Decoded text if valid, otherwise None.
         """
 
-        if self._bin_verifi_val(self.value):
+        if BinCodeDecode._bin_verifi_val(self.value):
             result: str = bytes([int(bin, 2) for bin in self.value.split()]).decode(
                 "latin-1"
             )
