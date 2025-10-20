@@ -13,7 +13,7 @@ def strip_accents(text: str) -> str:
         text (str): Input string possibly containing accented characters.
 
     Returns:
-        return (str): String with accents removed.
+        (str): String with accents removed.
     """
 
     return "".join(
