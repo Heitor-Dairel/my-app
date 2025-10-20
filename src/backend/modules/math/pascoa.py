@@ -23,10 +23,7 @@ class CalcYear:
         "Good Friday": lambda x: x - timedelta(days=2),
         "Corpus Christi": lambda x: x + timedelta(days=60),
     }
-    FLAG_CALENDAR: Final[dict[str, Callable[[int], date]]] = {
-        "Gregorian": lambda x: CalcYear._easter_gregorian(x),
-        "Julian": lambda x: CalcYear._easter_julian(x),
-    }
+
     ORDER_BY: Final[dict[str, bool]] = {"asc": False, "desc": True}
 
     def __init__(self, year: int) -> None:
@@ -89,6 +86,11 @@ class CalcYear:
         var_day: int = (var_d + var_e + 114) % 31 + 1
 
         return date(year, var_month, var_day)
+
+    FLAG_CALENDAR: Final[dict[str, Callable[[int], date]]] = {
+        "Gregorian": _easter_gregorian,
+        "Julian": _easter_julian,
+    }
 
     @staticmethod
     def _calendar_check(year: int, calendar_type: CALENDAR = None) -> date:
