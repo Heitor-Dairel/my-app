@@ -80,7 +80,7 @@ class BinCodeDecode:
             4. Join binary values with spaces.
 
         Returns:
-            return (str | None): Space-separated 8-bit binary string,
+            (str | None): Space-separated 8-bit binary string,
             or None if the result is empty.
         """
 
@@ -100,7 +100,7 @@ class BinCodeDecode:
             3. Decode the resulting bytes using `latin-1`.
 
         Returns:
-            return (str | None): Decoded text if valid, otherwise None.
+            (str | None): Decoded text if valid, otherwise None.
         """
 
         if BinCodeDecode._bin_verifi_val(self.value):
