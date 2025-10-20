@@ -51,7 +51,7 @@ class EncryptionCodeDecode:
             salt (bytes): A unique salt to ensure uniqueness of the key.
 
         Returns:
-            return (bytes): 32-byte (256-bit) derived key.
+            (bytes): 32-byte (256-bit) derived key.
         """
 
         key: bytes = hash_secret_raw(
@@ -76,7 +76,7 @@ class EncryptionCodeDecode:
         4. Return a base64-encoded string combining salt + nonce + ciphertext.
 
         Returns:
-            return (str): Base64 string containing salt, nonce, and encrypted message.
+            (str): Base64 string containing salt, nonce, and encrypted message.
         """
 
         salt: bytes = os.urandom(32)  # *larger salt (32 bytes)
@@ -99,7 +99,7 @@ class EncryptionCodeDecode:
         5. Return the plaintext if valid, otherwise None.
 
         Returns:
-            return (str | None): Decrypted plaintext, or None if decoding/authentication fails.
+            (str | None): Decrypted plaintext, or None if decoding/authentication fails.
         """
 
         try:
