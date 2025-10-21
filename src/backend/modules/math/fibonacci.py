@@ -1,18 +1,21 @@
 from decimal import Decimal
+from src.backend.utils import performance, HDPrint
 
 
 def format_number(num: int, places: int = 2, start_range: int = 100) -> str:
     r"""
-    Format a number as a string, using thousands separator or scientific notation.
+    Format a number as a string, using a thousands separator or scientific notation.
+
+    This function formats small numbers with a dot as a thousands separator,
+    and switches to scientific notation for very large numbers or zero.
 
     Args:
         num (int): The number to format.
         places (int, optional): Number of decimal places for scientific notation. Defaults to 2.
-        start_range (int, optional): Minimum length of the number string to switch to scientific notation. Defaults to 100.
+        start_range (int, optional): Minimum number of digits to trigger scientific notation. Defaults to 100.
 
     Returns:
-        str: Formatted number string. Uses a dot as thousands separator for small numbers,
-        or scientific notation for very large numbers or zero.
+        str: Formatted number string.
 
     Examples:
         >>> format_number(123456)
@@ -28,9 +31,11 @@ def format_number(num: int, places: int = 2, start_range: int = 100) -> str:
     if num_1 == 0:
         return f"{0:.{places}e}"
 
-    if len(str(num)) > start_range:
-        exp: int = num_1.adjusted()
-        mantissa: Decimal = num_1.scaleb(-exp).normalize()
+    exp: int = num_1.adjusted()
+
+    if exp + 1 > start_range:
+
+        mantissa: Decimal = num_1.scaleb(-exp)
         return f"{mantissa:.{places}f}e{exp:+d}"
 
     return f"{num:,}".replace(",", ".")
@@ -102,6 +107,14 @@ def fibonacci_serie(number: int = 10, single: bool = False) -> list[str] | str |
 
 if __name__ == "__main__":
 
-    print(fibonacci_serie(20000, single=True))
+    HDPrint(
+        performance(
+            func="fibonacci_serie(1000, single=True)",
+            execution_times=1,
+        ),
+        fibonacci_serie(1000, single=True),
+    ).print()
 
-    # python -W ignore -m src.backend.modules.math.fibonacci
+# 5.405773 funcao antiga
+
+# python -W ignore -m src.backend.modules.math.fibonacci
