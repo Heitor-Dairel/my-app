@@ -115,6 +115,8 @@ class MorseCodeDecode:
         "/": 0.5,
     }
 
+    _cache_morse: dict[tuple[str, float], NDArray[np.float32]] = {}
+
     def __init__(self, value: str) -> None:
         """
         Initialize a MorseCodeDecode instance.
@@ -155,67 +157,91 @@ class MorseCodeDecode:
         sine_wave: NDArray[np.float32] = np.sin(
             2 * np.pi * freq * vector_t, dtype=np.float32
         )
-        wave: NDArray[np.float32] = volume * sine_wave
+        return volume * sine_wave
+
+    @staticmethod
+    def _dot_or_dash(symbol: str, speed: float) -> NDArray[np.float32]:
+        r"""
+        Generate the beep waveform for a Morse code dot or dash, including trailing silence.
+
+        This method creates a sine wave for the given symbol (dot or dash) and appends
+        a silence interval after the beep. The result is cached to improve performance
+        for repeated symbols with the same speed.
+
+        Args:
+            symbol (str): Morse code symbol, either '.' or '-'.
+            speed (float): Playback speed multiplier; higher values make playback faster.
+
+        Returns:
+            NDArray[np.float32]: Array representing the audio waveform of the symbol
+            followed by its silence.
+        """
+
+        key: tuple[str, float] = (symbol, speed)
+
+        if key in MorseCodeDecode._cache_morse:
+            return MorseCodeDecode._cache_morse[key]
+
+        beep_symbol: NDArray[np.float32] = MorseCodeDecode._beep_create(
+            freq=MorseCodeDecode.CONFIG_BEEP["FREQ"],
+            duration=MorseCodeDecode.MORSESOUND[symbol] / speed,
+            volume=MorseCodeDecode.CONFIG_BEEP["VOLUME"],
+        )
+
+        time_symbol: NDArray[np.float32] = np.zeros(
+            int(
+                MorseCodeDecode.CONFIG_BEEP["FS"]
+                * MorseCodeDecode.MORSESOUND["TIME_SYMBOLS"]
+                / speed
+            ),
+            dtype=np.float32,
+        )
+
+        wave: NDArray[np.float32] = np.r_[beep_symbol, time_symbol]
+
+        MorseCodeDecode._cache_morse[key] = wave
 
         return wave
 
     @staticmethod
-    def _dot_or_dash(symbol: str, speed: float) -> list[NDArray[np.float32]]:
+    def _space_or_slash(symbol: str, speed: float) -> NDArray[np.float32]:
         r"""
-        Generate the beep waveform and trailing silence for a dot or dash.
+        Generate the silence waveform for a Morse code space or slash.
+
+        This method creates an array of zeros corresponding to the duration of a space
+        (' ') or slash ('/') symbol in Morse code. The result is cached for repeated use
+        with the same speed.
 
         Args:
-            symbol (str): Either '.' or '-' representing a Morse code dot or dash.
-            speed (float): Playback speed multiplier; higher values produce faster playback.
+            symbol (str): Morse code symbol, either ' ' (space) or '/' (slash).
+            speed (float): Playback speed multiplier; higher values make playback faster.
 
         Returns:
-            list[NDArray[np.float32]]: A list with two arrays: the sine wave for the dot or dash,
-            and the silence that follows it.
+            NDArray[np.float32]: Array of zeros representing the silence for the symbol.
         """
 
-        return [
-            MorseCodeDecode._beep_create(
-                freq=MorseCodeDecode.CONFIG_BEEP["FREQ"],
-                duration=MorseCodeDecode.MORSESOUND[symbol] / speed,
-                volume=MorseCodeDecode.CONFIG_BEEP["VOLUME"],
+        key: tuple[str, float] = (symbol, speed)
+
+        if key in MorseCodeDecode._cache_morse:
+            return MorseCodeDecode._cache_morse[key]
+
+        silence_symbol: NDArray[np.float32] = np.zeros(
+            int(
+                MorseCodeDecode.CONFIG_BEEP["FS"]
+                * MorseCodeDecode.MORSESOUND[symbol]
+                / speed
             ),
-            np.zeros(
-                int(
-                    MorseCodeDecode.CONFIG_BEEP["FS"]
-                    * MorseCodeDecode.MORSESOUND["TIME_SYMBOLS"]
-                    / speed
-                ),
-                dtype=np.float32,
-            ),
-        ]
+            dtype=np.float32,
+        )
 
-    @staticmethod
-    def _space_or_slash(symbol: str, speed: float) -> list[NDArray[np.float32]]:
-        r"""
-        Generate silence for spaces or slashes in Morse code.
+        MorseCodeDecode._cache_morse[key] = silence_symbol
 
-        Args:
-            symbol (str): Either ' ' or '/' representing a space or slash.
-            speed (float): Playback speed multiplier; higher values produce faster playback.
-
-        Returns:
-            list[NDArray[np.float32]]: A list containing a single array of silence.
-        """
-        return [
-            np.zeros(
-                int(
-                    MorseCodeDecode.CONFIG_BEEP["FS"]
-                    * MorseCodeDecode.MORSESOUND[symbol]
-                    / speed
-                ),
-                dtype=np.float32,
-            )
-        ]
+        return silence_symbol
 
     BEEP_PLAY: Final[
         dict[
             str,
-            Callable[[str, float], list[NDArray[np.float32]]],
+            Callable[[str, float], NDArray[np.float32]],
         ]
     ] = {
         ".": _dot_or_dash,
@@ -246,7 +272,7 @@ class MorseCodeDecode:
         chunks: list[NDArray[np.float32]] = []
 
         for symbol in message:
-            chunks.extend(MorseCodeDecode.BEEP_PLAY[symbol](symbol, speed))
+            chunks.append(MorseCodeDecode.BEEP_PLAY[symbol](symbol, speed))
 
         wave_total: NDArray[np.float32] = np.concatenate(chunks)
         sd.play(wave_total, MorseCodeDecode.CONFIG_BEEP["FS"])
@@ -307,7 +333,7 @@ class MorseCodeDecode:
 if __name__ == "__main__":
 
     cod_morse = MorseCodeDecode("ola t").tomorse(sound=True, speed=1.0)
-    cod_morse1 = MorseCodeDecode("ó").totext()
+    cod_morse1 = MorseCodeDecode("---").totext()
     print(f"{cod_morse}")
     print(f"{cod_morse1}")
 
