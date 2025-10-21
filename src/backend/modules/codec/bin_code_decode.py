@@ -20,6 +20,9 @@ class BinCodeDecode:
             Convert `value` from binary string to text if valid, else None.
     """
 
+    _cache_binary: dict[int, str] = {}
+    _cache_text: dict[str, int] = {}
+
     def __init__(self, value: str) -> None:
         """
         Initialize a BinCodeDecode instance.
@@ -70,43 +73,66 @@ class BinCodeDecode:
 
     def tobin(self) -> str | None:
         r"""
-        Convert the stored text (`value`) into its 8-bit binary representation.
+        Convert the stored text (`value`) into an 8-bit binary string.
 
         Process:
-            1. Validate text with `_str_verifi_val`, keeping only characters
-            with Unicode code points ≤ 255.
-            2. Encode the validated text using `latin-1`.
-            3. Convert each byte into an 8-bit binary string.
-            4. Join binary values with spaces.
+            - Validate text with `_str_verifi_val`, keeping only characters with Unicode code points ≤ 255.
+            - Encode the validated text using 'latin-1'.
+            - Convert each byte into an 8-bit binary string.
+            - Join binary strings with spaces.
+
+        Notes:
+            - Uses caching to avoid re-processing bytes that have already been converted.
 
         Returns:
-            (str | None): Space-separated 8-bit binary string,
-            or None if the result is empty.
+            (str | None): Space-separated 8-bit binary string if the text is valid;
+                        otherwise None.
         """
 
+        collection: list[str] = []
+
         text_verifi: str = BinCodeDecode._str_verifi_val(self.value)
-        result: str = " ".join(
-            [format(byt, "08b") for byt in text_verifi.encode("latin-1")]
-        )
+
+        for byt in text_verifi.encode("latin-1"):
+
+            if byt in BinCodeDecode._cache_binary:
+                collection.append(BinCodeDecode._cache_binary[byt])
+            else:
+                collection.append(format(byt, "08b"))
+                BinCodeDecode._cache_binary[byt] = format(byt, "08b")
+
+        result: str = " ".join(collection)
         return result or None
 
     def totxt(self) -> str | None:
         r"""
         Convert the stored binary string (`value`) back into text.
 
-        Steps:
-            1. Validate the binary string using `_bin_verifi_val`.
-            2. Convert each 8-bit binary segment to an integer byte.
-            3. Decode the resulting bytes using `latin-1`.
+        Process:
+            - Validate the binary string using `_bin_verifi_val`.
+            - Split the string into 8-bit segments and convert each segment to an integer.
+            - Decode the resulting bytes using 'latin-1'.
+
+        Notes:
+            - Uses caching to avoid re-processing previously converted binary segments.
 
         Returns:
-            (str | None): Decoded text if valid, otherwise None.
+            (str | None): Decoded text if the binary string is valid; otherwise None.
         """
 
+        collection: list[int] = []
+
         if BinCodeDecode._bin_verifi_val(self.value):
-            result: str = bytes([int(bin, 2) for bin in self.value.split()]).decode(
-                "latin-1"
-            )
+
+            for bin in self.value.split():
+
+                if bin in BinCodeDecode._cache_text:
+                    collection.append(BinCodeDecode._cache_text[bin])
+                else:
+                    collection.append(int(bin, 2))
+                    BinCodeDecode._cache_text[bin] = int(bin, 2)
+
+            result: str = bytes(collection).decode("latin-1")
             return result
 
         return None
@@ -114,9 +140,8 @@ class BinCodeDecode:
 
 if __name__ == "__main__":
 
-    binario = BinCodeDecode("a€").tobin()
-    txt = BinCodeDecode("10110010 10111101 11100001").totxt()
-
+    binario = BinCodeDecode("€a€a").tobin()
+    txt = BinCodeDecode("10110010 11100001 11100001").totxt()
     print(binario)
     print(txt)
 
