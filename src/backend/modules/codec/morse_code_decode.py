@@ -300,7 +300,11 @@ class MorseCodeDecode:
 
         text_prepared: str = strip_accents(self.value).upper()
         result: str = " ".join(
-            [MorseCodeDecode.TEXTMORSE.get(tx, "") for tx in text_prepared]
+            [
+                MorseCodeDecode.TEXTMORSE[tx]
+                for tx in text_prepared
+                if MorseCodeDecode.TEXTMORSE.get(tx, None) is not None
+            ]
         )
         if result:
             if sound:
@@ -332,10 +336,14 @@ class MorseCodeDecode:
 
 if __name__ == "__main__":
 
-    cod_morse = MorseCodeDecode("ola t").tomorse(sound=True, speed=1.0)
-    cod_morse1 = MorseCodeDecode("---").totext()
-    print(f"{cod_morse}")
-    print(f"{cod_morse1}")
+    cod_morse = MorseCodeDecode(" €a€fdgagfsdfgsdfgsdfgsdfgs a ").tomorse(
+        sound=False, speed=1.0
+    )
+    cod_morse1 = MorseCodeDecode(
+        "/ .- ..-. -.. --. .- --. ..-. ... -.. ..-. --. ... -.. ..-. --. ... -.. ..-. --. ... -.. ..-. --. ... / .- /"
+    ).totext()
+    print(f"'{cod_morse}'")
+    print(f"'{cod_morse1}'")
 
 
 # cls ; python -W ignore -m src.backend.modules.codec.morse_code_decode
