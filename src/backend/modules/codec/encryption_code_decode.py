@@ -4,6 +4,7 @@ from argon2.low_level import hash_secret_raw, Type
 import os
 import base64
 import binascii
+from src.backend.utils import performance
 
 
 class EncryptionCodeDecode:
@@ -57,9 +58,9 @@ class EncryptionCodeDecode:
         key: bytes = hash_secret_raw(
             secret=password.encode(),
             salt=salt,
-            time_cost=3,  # *number of iterations
-            memory_cost=64 * 1024,  # *memory used in KB (64 MB)
-            parallelism=2,  # *threads
+            time_cost=1,  # *number of iterations
+            memory_cost=8 * 1024,  # *memory used in KB (8 MB)
+            parallelism=4,  # *threads
             hash_len=32,  # *32 bytes = 256 bits for AES-256
             type=Type.ID,
         )
@@ -116,17 +117,23 @@ class EncryptionCodeDecode:
 
 if __name__ == "__main__":
     teste1 = EncryptionCodeDecode("fdfsfs", "oio").encrypt()
+
     print(
-        EncryptionCodeDecode(
-            "bdPzFEW1iTviXbnbzmzO1v8fCzWt/0w9UJ2Od6KZzgwU1cu1NC8VstuBygSNrhNL5+Vggu3x0eyDRu5CrMSubF+p0Q==",
-            "h",
-        ).decrypt()
+        performance(
+            "EncryptionCodeDecode('fdfsfs', 'oio').encrypt()", execution_times=1100
+        )
     )
-    print(
-        EncryptionCodeDecode(
-            "wmKWlws3NI7S3N9R8+izGwZtX5fz/IxqzgaPy7V7LR3Z+54LOcqxYdxwRNBJzyj5Y/Pn6FFtgN5H17HvOz9X7dstB1QUCw==",
-            "oio",
-        ).decrypt()
-    )
+    # print(
+    #     EncryptionCodeDecode(
+    #         "bdPzFEW1iTviXbnbzmzO1v8fCzWt/0w9UJ2Od6KZzgwU1cu1NC8VstuBygSNrhNL5+Vggu3x0eyDRu5CrMSubF+p0Q==",
+    #         "h",
+    #     ).decrypt()
+    # )
+    # print(
+    #     EncryptionCodeDecode(
+    #         "wmKWlws3NI7S3N9R8+izGwZtX5fz/IxqzgaPy7V7LR3Z+54LOcqxYdxwRNBJzyj5Y/Pn6FFtgN5H17HvOz9X7dstB1QUCw==",
+    #         "oio",
+    #     ).decrypt()
+    # )
 
     # python -W ignore -m src.backend.modules.codec.encryption_code_decode
