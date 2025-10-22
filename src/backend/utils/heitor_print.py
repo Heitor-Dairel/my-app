@@ -276,6 +276,8 @@ class HDPrint:
 
         parts: list[str] = []
 
+        style: str | None
+
         if style_text is not None:
             parts.append(str(style_text))
 
@@ -285,7 +287,7 @@ class HDPrint:
         if background is not None:
             parts.append("on " + str(background))
 
-        style: str | None = " ".join(parts)
+        style = " ".join(parts) if len(parts) > 0 else None
 
         write_console: Console = get_console() if file is None else Console(file=file)
         return write_console.print(*self.objects, style=style, sep=sep, end=end)
@@ -343,6 +345,6 @@ if __name__ == "__main__":
 
     HDPrint(data).print_json()
 
-    HDPrint("ola", 1, 2, 3, 4).print(sep="\n", foreground="black")
+    HDPrint("ola", 1, 2, 3, 4).print(foreground="cyan")
 
     # python -W ignore -m src.backend.utils.heitor_print
