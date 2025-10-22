@@ -188,9 +188,11 @@ class CalcYear:
 
         list_computus: list[str] = []
 
-        result_computus: date = CalcYear._calendar_check(calc_year, calendar_type)
+        result_computus: date
 
-        if not all_results:
+        if not all_results or year_step == 0:
+
+            result_computus = CalcYear._calendar_check(calc_year, calendar_type)
 
             return CalcYear._holiday_check(result_computus, holiday_type).strftime(
                 "%d/%m/%Y"
@@ -198,7 +200,7 @@ class CalcYear:
 
         for _ in range(range_years):
 
-            result_computus: date = CalcYear._calendar_check(calc_year, calendar_type)
+            result_computus = CalcYear._calendar_check(calc_year, calendar_type)
 
             list_computus.append(
                 CalcYear._holiday_check(result_computus, holiday_type).strftime(
@@ -249,10 +251,9 @@ class CalcYear:
 
         result_leap_year: dict[int, bool] = {}
 
-        if not all_results:
+        if not all_results or year_step == 0:
 
             result_leap_year[calc_year] = CalcYear._leap_year_check(calc_year)
-
             return result_leap_year
 
         for _ in range(range_years):
@@ -281,7 +282,7 @@ if __name__ == "__main__":
     )
 
     bisx = CalcYear(2025).leap_year(
-        all_results=True, range_years=15, year_step=-1, order_by="desc"
+        all_results=True, range_years=15, year_step=1, order_by="asc"
     )
 
     print(pascoa)
