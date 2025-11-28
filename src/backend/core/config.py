@@ -47,7 +47,7 @@ class ConnectDB:
             _user (str | None): Database username from environment variables.
             _password (str | None): Database password from environment variables.
             _dsn (str | None): Database DSN from environment variables.
-            _conn (oracledb.AsyncConnection | None): Active async connection, initially None.
+            _conn (oracledb.AsyncConnectionPool | None): Active async connection, initially None.
             _rows (list[tuple[Any, ...]] | tuple[Any, ...] | None): Query result rows.
             _header (list[tuple[Any, ...]] | tuple[Any, ...] | None): Column metadata.
             _sql (str | None): Last loaded SQL statement.
@@ -56,7 +56,7 @@ class ConnectDB:
         self._user: str | None = DB_USER
         self._password: str | None = DB_PASSWORD
         self._dsn: str | None = DB_DSN
-        self._conn: oracledb.AsyncConnection | None = None
+        self._conn: oracledb.AsyncConnectionPool | None = None
         self._rows: list[tuple[Any, ...]] | tuple[Any, ...] | None = None
         self._header: list[tuple[Any, ...]] | tuple[Any, ...] | None = None
         self._sql: str | None = None
@@ -104,12 +104,12 @@ class ConnectDB:
         return self._dsn
 
     @property
-    def conn(self) -> oracledb.AsyncConnection | None:
+    def conn(self) -> oracledb.AsyncConnectionPool | None:
         r"""
         Return the active database connection.
 
         Property:
-            conn (oracledb.AsyncConnection | None): Provides read-only access to the active asynchronous database connection.
+            conn (oracledb.AsyncConnectionPool | None): Provides read-only access to the active asynchronous database connection.
 
         Notes:
             - Returns None if no connection has been established.
@@ -171,9 +171,14 @@ class ConnectDB:
             oracledb.Error: If connection cannot be established.
         """
 
-        self._conn = await oracledb.connect_async(
-            user=self._user, password=self._password, dsn=self._dsn
-        )
+        self._conn = await oracledb.create_pool_async(
+            user=self._user,
+            password=self._password,
+            dsn=self._dsn,
+            min=2,
+            max=50,
+            increment=1,
+        ).acquire()
 
     async def close(self) -> None:
         r"""
